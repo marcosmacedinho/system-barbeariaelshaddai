@@ -19,5 +19,8 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  build: {
+    sourcemap: true // Adicione esta linha para gerar mapas de código
   }
 })

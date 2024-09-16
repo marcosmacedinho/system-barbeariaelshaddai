@@ -1,4 +1,3 @@
-// src/views/LoginView.vue
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -18,9 +17,12 @@ const userStore = useUserStore();
 async function login() {
     try {
         await signInWithEmailAndPassword(auth, data.value.email, data.value.password);
-        await userStore.fetchUserInfo(); 
-        useAlert().show('Login realizado com sucesso', 200);
-        router.replace('/');
+        await userStore.fetchUserInfo();
+
+        const role = userStore.user?.role;
+        const redirectPath = role === 'admin' ? '/barber/schedule-manager' : '/';
+        useAlert().show('Login realizado com sucesso!', 200);
+        router.replace(redirectPath);
     } catch (error) {
         useAlert().show('Deu algum erro no seu login, tente novamente!', 300);
     }
@@ -31,8 +33,8 @@ async function login() {
     <div class="container login">
         <div class="flex-grow-1">
             <div class="text-center">
-                <h1 class="text-center fs-5 fw-bolder mb-0">Clínica Riso</h1>
-                <p class="fs-6 text-muted">Gerenciamento de atendimentos clínicos</p>
+                <h1 class="text-center fs-5 fw-bolder mb-0">Barbearia El Shaddai</h1>
+                <p class="fs-6 text-muted">Gerenciamento de atendimentos à Barbearia</p>
             </div>
             <form @submit.prevent="login">
                 <div class="mb-3">
@@ -55,6 +57,11 @@ async function login() {
                     Partiu
                     <span class="material-symbols-rounded fs-5">login</span>
                 </button>
+                <div class="mt-3 text-center">
+                    <p class="fs-6 text-muted">Ainda não tem um cadastro? <a href="/register"
+                            class="text-primary">Cadastre-se</a>
+                    </p>
+                </div>
             </form>
         </div>
     </div>
@@ -68,6 +75,5 @@ async function login() {
     align-items: center;
     justify-content: center;
     height: 100dvh;
-    /* Corrigido de 100dvh para 100vh */
 }
 </style>

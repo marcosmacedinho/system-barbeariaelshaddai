@@ -1,6 +1,8 @@
+// firebaseConfig.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getAuth } from 'firebase/auth' // Use a função getAuth para a versão modular
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
+import { useAlert } from './stores/alert'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDie_L4h6W_8oXNj3tR8KfV7fw-ay7SfAE',
@@ -13,6 +15,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
-const auth = getAuth(app) 
+const auth = getAuth(app)
 
-export { db, auth } 
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  useAlert().show('Erro ao configurar a persistência: ', 500, error)
+})
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    useAlert().show('Usuário autenticado', 200)
+  } else {
+    useAlert().show('Nenhum usuário autenticado', 500)
+  }
+})
+
+export { db, auth }

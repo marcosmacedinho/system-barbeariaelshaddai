@@ -1,36 +1,85 @@
-<!-- src/components/HeaderView.vue -->
+// Header.vue
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useUserStore } from '@/stores/userStore';
-import avatarImage from '@/assets/male-avatar.png';
+import { useRouter } from 'vue-router';
+import { auth } from '@/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+
+const AVATAR_BASE_URL_MALE = 'https://avatar.iran.liara.run/public/boy?username=';
+const AVATAR_BASE_URL_FEMALE = 'https://avatar.iran.liara.run/public/girl?username=';
 
 const userStore = useUserStore();
-const avatarSrc = ref(avatarImage);
+const router = useRouter();
+const avatarSrc = ref('');
 const userOptionsVisible = ref(false);
-const barberShopName = ref('Barbearia El Shaddai');
+const userType = ref('');
+const formattedLastLogin = ref('');
 
 const toggleUserOptions = () => {
     userOptionsVisible.value = !userOptionsVisible.value;
 };
 
+const formatLastLogin = (timestamp) => {
+    if (!timestamp) return 'Data indisponível';
+    const date = new Date(timestamp);
+    return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+};
+
+const setAvatarSrc = (username, gender = 'male') => {
+    if (!username) return;
+    const baseUrl = gender === 'female' ? AVATAR_BASE_URL_FEMALE : AVATAR_BASE_URL_MALE;
+    avatarSrc.value = `${baseUrl}${username}`;
+};
+
+const updateUserInfo = () => {
+    if (userStore.user) {
+        userType.value = userStore.user?.role === 'admin' ? 'Administrador' : 'Cliente';
+        formattedLastLogin.value = formatLastLogin(userStore.lastLogin);
+        const username = userStore.user?.name || 'User';
+        const gender = userStore.user?.gender || 'male'; // Supondo que você tenha a informação de gênero no usuário
+        setAvatarSrc(username, gender);
+    } else {
+        avatarSrc.value = ''; // Clear avatar if no user data
+    }
+};
+
 onMounted(() => {
-    userStore.fetchUserInfo();
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            await userStore.fetchUserInfo();
+            updateUserInfo();
+        } else {
+            router.push('/login');
+        }
+    });
 });
+
+watch(() => userStore.user, () => {
+    updateUserInfo();
+}, { immediate: true });
+
+const logout = async () => {
+    const confirmed = window.confirm('Você tem certeza que deseja sair?');
+    if (confirmed) {
+        try {
+            await userStore.logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Erro ao tentar sair: ', error);
+        }
+    }
+};
 </script>
 
 <template>
     <header class="d-flex w-100 align-items-center justify-content-between p-3">
-        <!-- Campo de busca -->
-        <div class="input-group" style="max-width: 500px;">
-            <span class="input-group-text">
-                <span class="material-symbols-rounded fs-4"> search </span>
-            </span>
-            <input type="text" class="form-control" placeholder="Buscar Cliente ou Serviço" v-model="searchQuery" />
+        <div>
+            <h2 class="mb-0">Barberia El Shaddai</h2>
         </div>
 
-        <!-- Avatar de Perfil -->
         <div class="dropdown position-relative">
-            <img :src="avatarSrc" alt="Avatar" class="rounded-circle" width="50" height="50" @click="toggleUserOptions"
+            <img :src="avatarSrc" alt="Avatar" class="rounded-circle" width="45" height="45" @click="toggleUserOptions"
                 style="cursor: pointer;" />
 
             <div v-if="userOptionsVisible" class="dropdown-menu-custom">
@@ -41,23 +90,25 @@ onMounted(() => {
                         <small>{{ userStore.user?.email || 'email@example.com' }}</small>
                     </div>
                 </div>
-
-                <div class="theme-switcher d-flex justify-content-around p-2">
-                    <span class="material-symbols-rounded"> light_mode </span>
-                    <span class="material-symbols-rounded"> dark_mode </span>
-                </div>
-
-                <div class="profile-body">
-                    <a class="dropdown-item d-flex align-items-center py-3 px-2 gap-1" href="#">
-                        <span class="material-symbols-rounded"> content_cut </span>{{ barberShopName }}
-                    </a>
-                    <a class="dropdown-item d-flex align-items-center py-3 px-2 gap-1" href="#">
-                        <span class="material-symbols-rounded"> schedule </span>Último Login {{ userStore.lastLogin }}
-                    </a>
+                <div class="profile-body p-1">
+                    <div class="dropdown-item d-flex align-items-start gap-2 p-2">
+                        <span class="material-symbols-rounded"> account_circle </span>
+                        <div>
+                            <h6 class="mb-0">Tipo de Usuário</h6>
+                            <small>{{ userType }}</small>
+                        </div>
+                    </div>
+                    <div class="dropdown-item d-flex align-items-start gap-2 p-2">
+                        <span class="material-symbols-rounded"> schedule </span>
+                        <div>
+                            <h6 class="mb-0">Último Login</h6>
+                            <small>{{ formattedLastLogin }}</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-footer text-center">
-                    <a class="dropdown-item d-flex align-items-center py-3 px-2" href="#" @click="logout">
+                    <a class="dropdown-item d-flex align-items-center p-3" href="#" @click="logout">
                         <span class="material-symbols-rounded"> logout </span> Log Out
                     </a>
                 </div>
@@ -66,7 +117,6 @@ onMounted(() => {
     </header>
 </template>
 
-
 <style lang="scss" scoped>
 header {
     width: 100%;
@@ -74,7 +124,13 @@ header {
     left: 0;
     z-index: 1000;
     background-color: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+
+    h2 {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
 }
 
 .input-group-text {
@@ -90,12 +146,19 @@ header {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    animation: fadeIn 0.3s linear;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .profile-header {
     border-bottom: 1px solid #ddd;
-    background-color: #f1f3f5;
+    background-color: $body-bg-secondary;
+}
+
+.profile-header div {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .profile-header h5 {
@@ -128,7 +191,7 @@ header {
 
 .profile-footer {
     border-top: 1px solid #ddd;
-    background-color: #f1f3f5;
+    background-color: $body-bg-secondary;
 }
 
 .theme-switcher {

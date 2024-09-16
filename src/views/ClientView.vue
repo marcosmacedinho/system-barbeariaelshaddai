@@ -11,7 +11,6 @@ const selectTime = (time) => {
   selectedTime.value = time;
 };
 
-// Função chamada ao enviar o agendamento
 const bookAppointment = (appointmentDetails) => {
   useAlert().show('Agendamento enviado com sucesso!', 200, appointmentDetails);
 };
@@ -21,7 +20,6 @@ const bookAppointment = (appointmentDetails) => {
   <div class="container">
     <h1 class="text-center primary mb-4">Agendar Corte</h1>
 
-    <!-- Seleção de horário com select -->
     <div class="availability-section mb-5">
       <h2 class="text-secondary mb-3">Escolha um horário</h2>
       <Availability @select="selectTime" />
@@ -32,8 +30,10 @@ const bookAppointment = (appointmentDetails) => {
       <BookingForm :selectedTime="selectedTime" @submit="bookAppointment" />
     </div>
 
-    <div v-else class="alert alert-info text-center">
-      Por favor, selecione um horário antes de preencher o formulário.
+    <div v-else class="alert alert-info text-center d-flex align-items-center justify-content-center gap-1">
+      <span class="material-symbols-rounded">
+        info
+      </span>Selecione um horário antes de preencher o formulário.
     </div>
   </div>
 </template>
@@ -68,6 +68,7 @@ h2 {
   font-size: 1rem;
 }
 
+
 /* Responsividade */
 @media (max-width: 768px) {
   .container {
@@ -80,6 +81,10 @@ h2 {
 
   h2 {
     font-size: 1.25rem;
+  }
+
+  .alert {
+    font-size: .8rem;
   }
 }
 </style>
