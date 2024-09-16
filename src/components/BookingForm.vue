@@ -35,7 +35,6 @@ const formData = ref({
 
 const selectedTime = ref(props.selectedTime);
 
-// Função para buscar dados do usuário
 const fetchUserData = async (userId) => {
     try {
         const userDocRef = doc(db, 'users', userId);
@@ -53,7 +52,6 @@ const fetchUserData = async (userId) => {
     }
 };
 
-// Função para submeter o formulário
 const submitForm = async () => {
     if (selectedTime.value) {
         try {
@@ -76,7 +74,6 @@ const submitForm = async () => {
 
                 alert.show('Agendamento confirmado!', 200);
 
-                // Zerar o formulário
                 formData.value = {
                     name: '',
                     phone: ''
@@ -93,12 +90,10 @@ const submitForm = async () => {
     }
 };
 
-// Observe mudanças na propriedade 'selectedTime'
 watch(() => props.selectedTime, (newValue) => {
     selectedTime.value = newValue;
 });
 
-// Preencher os dados do usuário ao montar o componente
 onMounted(() => {
     const user = auth.currentUser;
     if (user) {
@@ -108,7 +103,6 @@ onMounted(() => {
     }
 });
 
-// Observa mudanças na autenticação
 watch(() => auth.currentUser, (newUser) => {
     if (newUser) {
         fetchUserData(newUser.uid);
