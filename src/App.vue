@@ -3,6 +3,15 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
 import AlertToast from './components/AlertToast.vue';
 import ConnectionStatus from './components/ConnectionStatus.vue';
+import { provide } from 'vue';
+import CopyCamp from './components/CopyCamp.vue';
+const sysapp = {
+  name: 'Barbearia El Shaddai',
+  version: '1.0.0',
+  copy: 'Versão de Teste'
+};
+
+provide('sysapp', sysapp);
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -19,6 +28,7 @@ userStore.initAuthListener(router);
     <router-view />
     <AlertToast />
     <ConnectionStatus />
+    <CopyCamp />
   </div>
 </template>
 
