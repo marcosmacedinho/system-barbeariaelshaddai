@@ -132,6 +132,6 @@ onUnmounted(() => {
   padding: 0.75rem;
   border-radius: 0.5rem;
   margin-bottom: 20px;
-  background-color: #f8f9fa;
+  background-color: $dark-light;
 }
 </style>

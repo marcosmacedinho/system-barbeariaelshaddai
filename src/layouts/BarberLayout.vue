@@ -2,7 +2,9 @@
   <div class="barber-layout">
     <Header />
     <div class="main-content">
-      <Sidebar />
+      <div class="sidebar">
+        <Sidebar />
+      </div>
       <div class="content">
         <router-view />
         <AlertToast />
@@ -21,28 +23,24 @@ import Sidebar from '@/components/SideBar.vue';
 .barber-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
 }
 
 .main-content {
   display: flex;
   flex: 1;
+  overflow-y: hidden;
 }
 
 .sidebar {
   width: 80px;
-  background-color: #f8f9fa;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 20px;
 }
 
 .content {
   flex: 1;
   padding: 20px;
-  background-color: #fff;
   overflow-y: auto;
   border-radius: 12px;
 }
@@ -50,7 +48,6 @@ import Sidebar from '@/components/SideBar.vue';
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;
-    /* Sidebar mais estreita em telas pequenas */
   }
 }
 </style>

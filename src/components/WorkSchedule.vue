@@ -5,13 +5,15 @@
       <div v-for="(schedule, index) in dailySchedule" :key="index" class="mb-3">
         <label :for="'day-' + index">{{ schedule.day }}</label>
         <div class="d-flex gap-2">
-          <select v-model="schedule.startTime" :id="'start-' + index" class="form-select" @change="updateAvailableTimes(index)">
+          <select v-model="schedule.startTime" :id="'start-' + index" class="form-select"
+            @change="updateAvailableTimes(index)">
             <option value="" disabled>Início</option>
             <option v-for="time in timeOptions" :key="time" :value="time">
               {{ time }}
             </option>
           </select>
-          <select v-model="schedule.endTime" :id="'end-' + index" class="form-select" @change="updateAvailableTimes(index)">
+          <select v-model="schedule.endTime" :id="'end-' + index" class="form-select"
+            @change="updateAvailableTimes(index)">
             <option value="" disabled>Fim</option>
             <option v-for="time in timeOptions" :key="time" :value="time">
               {{ time }}
@@ -142,5 +144,6 @@ watch(dailySchedule, (newSchedule) => {
   padding: 0.75rem;
   border-radius: 0.5rem;
   margin-bottom: 20px;
+  overflow: auto;
 }
 </style>

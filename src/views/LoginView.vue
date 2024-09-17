@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAlert } from '@/stores/alert'; // Se você estiver usando um sistema de alerta
-import { auth } from '@/firebaseConfig'; // Importe a instância do Firebase Authentication
+import { useAlert } from '@/stores/alert';
+import { auth } from '@/firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useUserStore } from '@/stores/userStore';
 
@@ -19,14 +19,16 @@ async function login() {
         await signInWithEmailAndPassword(auth, data.value.email, data.value.password);
         await userStore.fetchUserInfo();
 
-        const role = userStore.user?.role;
-        const redirectPath = role === 'admin' ? '/barber/schedule-manager' : '/';
+        const role = userStore.user?.role || 'user';
+        const redirectPath = role === 'admin' ? '/barber/appointments' : '/';
+
         useAlert().show('Login realizado com sucesso!', 200);
         router.replace(redirectPath);
     } catch (error) {
         useAlert().show('Deu algum erro no seu login, tente novamente!', 300);
     }
 }
+
 </script>
 
 <template>

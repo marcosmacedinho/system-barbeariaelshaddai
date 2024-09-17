@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import DefaultLayout from '@/layouts/DefaultLayout.vue'; // Layout com cabeçalho
-import NoHeaderLayout from '@/layouts/NoHeaderLayout.vue'; // Layout sem cabeçalho
-import BarberLayout from '@/layouts/BarberLayout.vue'; // Layout para o barbeiro
-import { auth } from '@/firebaseConfig'; // Importar configuração do Firebase
+import { createRouter, createWebHistory } from 'vue-router'
+import DefaultLayout from '@/layouts/DefaultLayout.vue' // Layout com cabeçalho
+import NoHeaderLayout from '@/layouts/NoHeaderLayout.vue' // Layout sem cabeçalho
+import BarberLayout from '@/layouts/BarberLayout.vue' // Layout para o barbeiro
+import { auth } from '@/firebaseConfig' // Importar configuração do Firebase
 
 const routes = [
   {
@@ -24,12 +24,6 @@ const routes = [
         path: 'schedule-manager',
         name: 'BarberScheduleManager',
         component: () => import('@/components/WorkSchedule.vue'),
-        meta: { requiresAuth: true } 
-      },
-      {
-        path: 'available-dates',
-        name: 'AvailableDates',
-        component: () => import('@/components/AvailableDates.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -67,27 +61,30 @@ const routes = [
         component: () => import('@/views/RegisterView.vue')
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/components/NotFound.vue')
   }
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
-});
+})
 
 router.beforeEach(async (to, from, next) => {
-  const user = auth.currentUser;
-  if (to.matched.some(record => record.meta.requiresAuth) && !user) {
-    // Se a rota requer autenticação e o usuário não está autenticado, redireciona para o login
-    next('/login');
+  const user = auth.currentUser
+  if (to.matched.some((record) => record.meta.requiresAuth) && !user) {
+    next('/login')
   } else {
-    // Se o usuário está autenticado e está tentando acessar a página de login ou registro, redireciona para a página principal
     if (user && (to.name === 'Login' || to.name === 'Register')) {
-      next('/');
+      next('/')
     } else {
-      next();
+      next()
     }
   }
-});
+})
 
-export default router;
+export default router

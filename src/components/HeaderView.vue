@@ -64,7 +64,7 @@ const logout = async () => {
     if (confirmed) {
         try {
             await userStore.logout();
-            router.push('/login');
+            router.replace('/login');
         } catch (error) {
             console.error('Erro ao tentar sair: ', error);
         }
@@ -119,10 +119,8 @@ const logout = async () => {
 
 <style lang="scss" scoped>
 header {
+    position: relative;
     width: 100%;
-    top: 0;
-    left: 0;
-    z-index: 1000;
     background-color: #f8f9fa;
 
     h2 {

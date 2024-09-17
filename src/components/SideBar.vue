@@ -2,17 +2,14 @@
 <template>
     <div class="sidebar">
         <nav class="nav flex-column">
+            <router-link to="/barber/appointments" class="nav-link">
+                <span class="material-symbols-rounded"> event </span>
+            </router-link>
             <router-link to="/barber/schedule-manager" class="nav-link">
                 <span class="material-symbols-rounded"> schedule </span>
             </router-link>
-            <router-link to="/barber/available-dates" class="nav-link">
-                <span class="material-symbols-rounded"> calendar_today </span>
-            </router-link>
             <router-link to="/barber/clients" class="nav-link">
                 <span class="material-symbols-rounded"> person </span>
-            </router-link>
-            <router-link to="/barber/appointments" class="nav-link">
-                <span class="material-symbols-rounded"> event </span>
             </router-link>
         </nav>
     </div>
@@ -25,11 +22,9 @@
     top: 0;
     left: 0;
     background-color: #f8f9fa;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 20px;
 }
 
 .nav-link {
@@ -43,6 +38,7 @@
 .nav-link:hover {
     background-color: #e9ecef;
     color: #007bff;
+    border-radius: 10%;
 }
 
 .material-symbols-rounded {

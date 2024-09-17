@@ -1,4 +1,4 @@
-// firebaseConfig.js
+// src/firebaseConfig.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
@@ -17,15 +17,17 @@ const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
 
+// Configura a persistência do navegador
 setPersistence(auth, browserLocalPersistence).catch((error) => {
   useAlert().show('Erro ao configurar a persistência: ', 500, error)
 })
 
+// Define o listener para autenticação
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    useAlert().show('Usuário autenticado', 200)
+    console.log('Usuário autenticado', 200)
   } else {
-    useAlert().show('Nenhum usuário autenticado', 500)
+    console.log('Usuário não autenticado', 500)
   }
 })
 
