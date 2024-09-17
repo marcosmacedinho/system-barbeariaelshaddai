@@ -45,7 +45,7 @@ const checkConnectionSpeed = () => {
             const downlink = connection.downlink || 1;
 
             if (downlink < 2) {
-                showToastMessage('Sua conexão está lenta.', 'signal_wifi_statusbar_not_connected');
+                showToastMessage('Sua conexão está lenta.', 'signal_wifi_0_bar');
             } else {
                 showToastMessage('Conectado', 'wifi');
             }
@@ -61,7 +61,7 @@ const checkConnectionSpeed = () => {
         updateConnectionStatus();
     }
 
-    intervalId = setInterval(updateConnectionStatus, 10000); // Verifica a cada 10 segundos
+    intervalId = setInterval(updateConnectionStatus, 10000);
 
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', handleOffline);
@@ -81,7 +81,7 @@ onMounted(() => {
 <style scoped>
 .toast-container {
     z-index: 1050;
-    width: 250px;
+    width: 270px;
 }
 
 .bounce-enter-active,

@@ -1,247 +1,237 @@
 <template>
     <div>
-      <h3>Agendamentos</h3>
-      
-      <!-- Verifica se há agendamentos -->
-      <div v-if="appointments.length > 0" class="row mt-4">
-        <div class="col-md-4 mb-3" v-for="appointment in appointments" :key="appointment.id">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">{{ appointment.name }}</h5>
-              <p class="card-text">Telefone: {{ appointment.phone }}</p>
-              <p class="card-text">Horário: {{ appointment.time }}</p>
-              <div class="d-flex justify-content-end">
-                <button class="btn btn-secondary btn-sm me-2" @click="toggleDropdown(appointment.id)">
-                  <span class="material-symbols-rounded">more_vert</span>
-                </button>
-                <div v-if="dropdownAppointmentId === appointment.id" class="dropdown-menu show">
-                  <button class="dropdown-item d-flex align-items-center gap-1" @click="deferAppointment(appointment)">
-                    <span class="material-symbols-rounded">schedule</span> Adiar
-                  </button>
-                  <button class="dropdown-item text-danger d-flex align-items-center gap-1" @click="cancelAppointment(appointment.id)">
-                    <span class="material-symbols-rounded">cancel</span> Despachar
-                  </button>
-                  <button class="dropdown-item d-flex align-items-center gap-1" @click="editAppointment(appointment.id)">
-                    <span class="material-symbols-rounded">edit</span> Editar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <h3 class="d-md-block">Agendamentos</h3> <!-- Título escondido em mobile -->
+
+        <!-- Botão de Ações para Mobile -->
+        <div class="d-flex justify-content-end mb-3">
+            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="toggleActionsMenu">
+                <span class="material-symbols-rounded">delete</span> Limpeza
+            </button>
         </div>
-      </div>
-      
-      <!-- Exibe componente NothingHere quando não houver agendamentos -->
-      <NothingHere v-else />
-  
-      <!-- Modal de Edição -->
-      <div v-if="isEditModalOpen" class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.5);">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header d-flex justify-content-between">
-              <h5 class="modal-title">Editar Agendamento</h5>
-              <span class="material-symbols-rounded" @click="closeEditModal">cancel</span>
-            </div>
-            <div class="modal-body">
-              <form @submit.prevent="updateAppointment">
-                <div class="mb-3">
-                  <label class="form-label" for="editTime">Novo Horário</label>
-                  <input v-model="editAppointmentData.time" class="form-control" id="editTime" type="text" required />
-                </div>
-                <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
-                  <span class="material-symbols-rounded">save</span> Salvar
-                </button>
-              </form>
-            </div>
-          </div>
+
+        <!-- Menu de Ações para Mobile -->
+        <div v-if="showActionsMenu"
+            class="actions-menu d-flex flex-md-row align-items-end mb-3 justify-content-around gap-3">
+            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="clearAppointments('hour')">
+                <span class="material-symbols-rounded">watch_later</span> Última Hora
+            </button>
+            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="clearAppointments('month')">
+                <span class="material-symbols-rounded">calendar_view_month</span> Último Mês
+            </button>
+            <button class="btn btn-sm btn-light d-flex align-items-center gap-1 text-danger"
+                @click="clearAppointments('all')">
+                <span class="material-symbols-rounded">delete_forever</span> Todo Período
+            </button>
         </div>
-      </div>
+
+        <!-- Verifica se há agendamentos -->
+        <div v-if="appointments.length > 0" class="row mt-2">
+            <div class="col-12 mb-2" v-for="appointment in appointments" :key="appointment.id">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="d-flex flex-column flex-grow-1">
+                            <h5 class="card-title mb-1">{{ appointment.name }}</h5>
+                            <p class="text-muted mb-1">{{ appointment.phone }}</p>
+                            <p class="text-muted mb-1">Horário: {{ appointment.time }}</p>
+                        </div>
+                        <button class="btn btn-sm btn-link text-muted" @click="toggleDropdown(appointment.id)">
+                            <span class="material-symbols-rounded">more_vert</span>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Menu: aparece logo abaixo das informações do cliente -->
+                    <div v-if="dropdownAppointmentId === appointment.id"
+                        class="menu-options d-flex justify-content-between px-2 pb-2">
+                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1"
+                            @click="deferAppointment(appointment)">
+                            <span class="material-symbols-rounded">schedule</span> Adiar
+                        </button>
+                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1 text-danger"
+                            @click="cancelAppointment(appointment.id)">
+                            <span class="material-symbols-rounded">cancel</span> Despachar
+                        </button>
+                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1"
+                            @click="editAppointment(appointment.id)">
+                            <span class="material-symbols-rounded">edit</span> Editar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <NothingHere v-else />
+
+        <!-- Modal de Edição -->
+        <div v-if="isEditModalOpen" class="modal fade show d-block" tabindex="-1"
+            style="background: rgba(0, 0, 0, 0.5);">
+            <div class="modal-dialog modal-sm"> <!-- Modal menor -->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Horário</h5>
+                        <button type="button" class="btn-close" @click="closeEditModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="updateAppointment">
+                            <input v-model="editAppointmentData.time" class="form-control mb-2" type="text"
+                                placeholder="Novo Horário" required />
+                            <button type="submit"
+                                class="btn btn-primary btn-sm w-100 d-flex justify-content-center align-items-center gap-1">
+                                <span class="material-symbols-rounded">save</span> Salvar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue';
-  import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-  import { db } from '@/firebaseConfig.js';
-  import { useAlert } from '@/stores/alert';
-  import NothingHere from '@/components/NothingHere.vue'; // Importa o componente NothingHere
-  
-  const appointments = ref([]);
-  const dropdownAppointmentId = ref(null);
-  const isEditModalOpen = ref(false);
-  const editAppointmentData = ref({
-      id: '',
-      time: ''
-  });
-  const alert = useAlert();
-  
-  const loadAppointments = async () => {
-      try {
-          const querySnapshot = await getDocs(collection(db, 'bookings'));
-          appointments.value = querySnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-          }));
-      } catch (error) {
-          alert.show('Erro ao carregar agendamentos.', 500);
-          console.error('Erro ao carregar agendamentos:', error);
-      }
-  };
-  
-  const toggleDropdown = (appointmentId) => {
-      dropdownAppointmentId.value = dropdownAppointmentId.value === appointmentId ? null : appointmentId;
-  };
-  
-  const deferAppointment = async (appointment) => {
-      try {
-          const docRef = doc(db, 'bookings', appointment.id);
-          await updateDoc(docRef, {
-              status: 'adiado'
-          });
-  
-          appointments.value = appointments.value.map(app =>
-              app.id === appointment.id ? { ...app, status: 'adiado' } : app
-          );
-  
-          alert.show('Agendamento adiado com sucesso!', 200);
-      } catch (error) {
-          alert.show('Erro ao adiar agendamento.', 500);
-          console.error('Erro ao adiar agendamento:', error);
-      }
-  };
-  
-  const cancelAppointment = async (id) => {
-      try {
-          await deleteDoc(doc(db, 'bookings', id));
-          appointments.value = appointments.value.filter(app => app.id !== id);
-          alert.show('Agendamento despachado com sucesso!', 200);
-      } catch (error) {
-          alert.show('Erro ao despachar agendamento.', 500);
-          console.error('Erro ao despachar agendamento:', error);
-      }
-  };
-  
-  const editAppointment = (id) => {
-      const appointment = appointments.value.find(app => app.id === id);
-      if (appointment) {
-          editAppointmentData.value = { id: appointment.id, time: appointment.time };
-          isEditModalOpen.value = true;
-      }
-  };
-  
-  const closeEditModal = () => {
-      isEditModalOpen.value = false;
-  };
-  
-  const updateAppointment = async () => {
-      try {
-          await updateDoc(doc(db, 'bookings', editAppointmentData.value.id), {
-              time: editAppointmentData.value.time
-          });
-          closeEditModal();
-          loadAppointments();
-      } catch (error) {
-          alert.show('Erro ao atualizar o agendamento.', 500);
-          console.error('Erro ao atualizar o agendamento:', error);
-      }
-  };
-  
-  onMounted(() => {
-      loadAppointments();
-  });
-  </script>
-  
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/firebaseConfig.js';
+import { useAlert } from '@/stores/alert';
+import NothingHere from '@/components/NothingHere.vue'; // Importa o componente NothingHere
+
+const appointments = ref([]);
+const dropdownAppointmentId = ref(null);
+const isEditModalOpen = ref(false);
+const editAppointmentData = ref({ id: '', time: '' });
+const showActionsMenu = ref(false); // Controla a visibilidade do menu de ações
+const alert = useAlert();
+
+const loadAppointments = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'bookings'));
+        appointments.value = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+    } catch (error) {
+        alert.show('Erro ao carregar agendamentos.', 500);
+        console.error('Erro ao carregar agendamentos:', error);
+    }
+};
+
+const toggleDropdown = (appointmentId) => {
+    dropdownAppointmentId.value = dropdownAppointmentId.value === appointmentId ? null : appointmentId;
+};
+
+const deferAppointment = async (appointment) => {
+    try {
+        const docRef = doc(db, 'bookings', appointment.id);
+        await updateDoc(docRef, { status: 'adiado' });
+        appointments.value = appointments.value.map(app => (app.id === appointment.id ? { ...app, status: 'adiado' } : app));
+        alert.show('Agendamento adiado com sucesso!', 200);
+    } catch (error) {
+        alert.show('Erro ao adiar agendamento.', 500);
+        console.error('Erro ao adiar agendamento:', error);
+    }
+};
+
+const cancelAppointment = async (id) => {
+    try {
+        await deleteDoc(doc(db, 'bookings', id));
+        appointments.value = appointments.value.filter(app => app.id !== id);
+        alert.show('Agendamento despachado com sucesso!', 200);
+    } catch (error) {
+        alert.show('Erro ao despachar agendamento.', 500);
+        console.error('Erro ao despachar agendamento:', error);
+    }
+};
+
+const editAppointment = (id) => {
+    const appointment = appointments.value.find(app => app.id === id);
+    if (appointment) {
+        editAppointmentData.value = { id: appointment.id, time: appointment.time };
+        isEditModalOpen.value = true;
+    }
+};
+
+const closeEditModal = () => {
+    isEditModalOpen.value = false;
+};
+
+const updateAppointment = async () => {
+    try {
+        await updateDoc(doc(db, 'bookings', editAppointmentData.value.id), {
+            time: editAppointmentData.value.time,
+        });
+        closeEditModal();
+        loadAppointments();
+    } catch (error) {
+        alert.show('Erro ao atualizar o agendamento.', 500);
+        console.error('Erro ao atualizar o agendamento:', error);
+    }
+};
+
+const toggleActionsMenu = () => {
+    showActionsMenu.value = !showActionsMenu.value;
+};
+
+const clearAppointments = async (period) => {
+    const now = new Date();
+    let cutoffDate;
+
+    // Define a data limite com base no período selecionado
+    switch (period) {
+        case 'hour':
+            cutoffDate = new Date(now.getTime() - 60 * 60 * 1000); // Última hora
+            break;
+        case 'month':
+            cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Último mês
+            break;
+        case 'all':
+        default:
+            cutoffDate = null; // Remove todos
+            break;
+    }
+
+    try {
+        if (cutoffDate) {
+            appointments.value = appointments.value.filter(appointment => {
+                const appointmentDate = new Date(appointment.time); // Considera o campo `time` como a data do agendamento
+                return appointmentDate >= cutoffDate;
+            });
+        } else {
+            appointments.value = []; // Remove todos
+        }
+        alert.show('Agendamentos limpos com sucesso!', 200);
+        showActionsMenu.value = false; // Fecha o menu de ações após a limpeza
+    } catch (error) {
+        alert.show('Erro ao limpar agendamentos.', 500);
+        console.error('Erro ao limpar agendamentos:', error);
+    }
+};
+
+onMounted(loadAppointments);
+</script>
 
 <style scoped>
 .card {
     border: 1px solid #ddd;
-    border-radius: 0.25rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
 }
 
-.card-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-}
-
-.card-text {
-    margin: 0.5rem 0;
-}
-
-.position-relative {
-    position: relative;
-}
-
-.dropdown-menu {
-    position: absolute;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    z-index: 1000;
-    min-width: 150px;
-    display: none;
-}
-
-.dropdown-menu.show {
-    display: block;
-}
-
-.dropdown-item {
-    cursor: pointer;
-}
-
-.dropdown-item:hover {
-    background-color: #f8f9fa;
-}
-
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-}
-
-.modal-dialog {
-    margin: 1.75rem auto;
+.menu-options {
+    background: #f8f9fa;
+    border-top: 1px solid #ddd;
 }
 
 .modal-content {
-    position: relative;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.3rem;
-    outline: 0;
+    border-radius: 0.5rem;
 }
 
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+.actions-menu button {
+    margin-bottom: 0.5rem;
 }
 
-.modal-body {
-    padding: 1rem;
+.btn-link {
+    color: #000;
+    text-decoration: none;
 }
 
-.material-symbols-rounded {
-    font-size: 1.2rem;
-    cursor: pointer;
-}
-
-@media (max-width: 768px) {
-    .card {
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 576px) {
-    .card {
-        font-size: 12px;
-    }
+.btn-link:hover {
+    color: #007bff;
 }
 </style>
