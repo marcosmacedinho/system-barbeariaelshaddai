@@ -1,4 +1,3 @@
-// Header.vue
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useUserStore } from '@/stores/userStore';
@@ -64,13 +63,14 @@ const logout = async () => {
     if (confirmed) {
         try {
             await userStore.logout();
-            router.replace('/login');
+            router.replace('/login'); // Redireciona para a tela de login após logout
         } catch (error) {
             console.error('Erro ao tentar sair: ', error);
         }
     }
 };
 </script>
+
 
 <template>
     <header class="d-flex w-100 align-items-center justify-content-between p-3">

@@ -33,16 +33,13 @@ export const useUserStore = defineStore('user', {
       }
     },
     async logout() {
-      const confirmed = window.confirm('Você tem certeza que deseja sair?')
-      if (confirmed) {
-        try {
-          await auth.signOut()
-          this.user = null
-          this.lastLogin = null
-          useAlert().show('Você saiu da sua conta com segurança!', 200)
-        } catch (error) {
-          useAlert().show('Erro ao tentar sair', 500)
-        }
+      try {
+        await auth.signOut()
+        this.user = null
+        this.lastLogin = null
+        useAlert().show('Você saiu da sua conta com segurança!', 200)
+      } catch (error) {
+        useAlert().show('Erro ao tentar sair', 500)
       }
     },
     initAuthListener(router) {
