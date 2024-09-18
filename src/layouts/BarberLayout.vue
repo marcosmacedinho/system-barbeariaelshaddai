@@ -30,6 +30,7 @@ import Sidebar from '@/components/SideBar.vue';
   display: flex;
   flex: 1;
   overflow-y: hidden;
+
 }
 
 .sidebar {

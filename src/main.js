@@ -5,9 +5,7 @@ import { createPinia } from 'pinia'
 import router from './router'
 import { initializeAuth } from '@/authGuard'
 
-/**
- * Initializes the Vue application with Pinia and router.
- */
+
 const pinia = createPinia()
 const app = createApp(App)
 

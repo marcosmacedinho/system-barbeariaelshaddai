@@ -8,7 +8,7 @@ import CopyCamp from './components/CopyCamp.vue';
 const sysapp = {
   name: 'Barbearia El Shaddai',
   version: '1.0.0',
-  copy: 'Versão de Teste'
+  copy: '- 2024'
 };
 
 provide('sysapp', sysapp);
@@ -21,7 +21,8 @@ userStore.initAuthListener(router);
 
 <template>
   <div v-if="userStore.loading" class="d-flex justify-content-center align-items-center min-vh-100">
-    <div class="spinner-border" role="status">
+    <div class="spinner-grow" role="status">
+      <span class="visually-hidden">Loading...</span>
     </div>
   </div>
   <div v-else>
@@ -34,10 +35,4 @@ userStore.initAuthListener(router);
 
 <style lang="scss">
 @import './scss/init.scss';
-
-.spinner-border {
-  width: 3rem;
-  height: 3rem;
-  border-width: 0.2em;
-}
 </style>

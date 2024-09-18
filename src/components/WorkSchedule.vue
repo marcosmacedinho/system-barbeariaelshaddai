@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3>Definir Horários Diários</h3>
+    <h3 class="mb-4">Definir Horários Diários</h3>
     <form @submit.prevent="saveDailySchedule">
       <div v-for="(schedule, index) in dailySchedule" :key="index" class="mb-3">
         <label :for="'day-' + index">{{ schedule.day }}</label>
@@ -139,6 +139,8 @@ watch(dailySchedule, (newSchedule) => {
 </script>
 
 <style lang="scss" scoped>
+
+
 .form-select {
   width: 100%;
   padding: 0.75rem;

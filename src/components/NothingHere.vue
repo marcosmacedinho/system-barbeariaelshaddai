@@ -18,9 +18,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80vh;
-    /* Preenche quase toda a tela */
     text-align: center;
+    height: 70vh;
 }
 
 .svg-placeholder {
@@ -50,5 +49,11 @@ h2 {
 
 .material-symbols-rounded {
     font-size: 24px;
+}
+
+@media (max-width: 768px) {
+    .nothing-here-container {
+        height: 55vh;
+    }
 }
 </style>

@@ -21,7 +21,7 @@ const bookAppointment = (appointmentDetails) => {
     <h1 class="text-center primary mb-4">Agendar Corte</h1>
 
     <div class="availability-section mb-5">
-      <h2 class="text-secondary mb-3">Escolha um horário</h2>
+      <h2 class="text-secondary mb-3">Escolha um dia e horário</h2>
       <Availability @select="selectTime" />
     </div>
 

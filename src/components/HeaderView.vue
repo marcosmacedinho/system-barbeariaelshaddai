@@ -74,9 +74,12 @@ const logout = async () => {
 
 <template>
     <header class="d-flex w-100 align-items-center justify-content-between p-3">
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- <img src="@/assets/imgs/logoBES.jpeg" alt="Logo" width="50" height="50" /> -->
+
             <h2 class="mb-0">Barberia El Shaddai</h2>
         </div>
+
 
         <div class="dropdown position-relative">
             <img :src="avatarSrc" alt="Avatar" class="rounded-circle" width="45" height="45" @click="toggleUserOptions"
@@ -101,15 +104,19 @@ const logout = async () => {
                     <div class="dropdown-item d-flex align-items-start gap-2 p-2">
                         <span class="material-symbols-rounded"> schedule </span>
                         <div>
-                            <h6 class="mb-0">Último Login</h6>
+                            <h6 class="mb-0">Último Acesso</h6>
                             <small>{{ formattedLastLogin }}</small>
                         </div>
                     </div>
                 </div>
 
-                <div class="profile-footer text-center">
-                    <a class="dropdown-item d-flex align-items-center p-3" href="#" @click="logout">
-                        <span class="material-symbols-rounded"> logout </span> Log Out
+                <div class="profile-footer text-start">
+                    <a class="dropdown-item d-flex align-items-center p-3 gap-1" href="#" @click="logout">
+                        <span class="material-symbols-rounded"> logout </span>
+                        <div>
+                            <h6 class="mb-0">Fazer Log out</h6>
+                            <small>Sair com segurança</small>
+                        </div>
                     </a>
                 </div>
             </div>

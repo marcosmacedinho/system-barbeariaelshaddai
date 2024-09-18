@@ -1,8 +1,22 @@
 <template>
     <div>
-        <h3>Clientes Cadastrados</h3>
+        <h3 class="mb-4">Clientes Cadastrados</h3>
+
+        <!-- Barra de Pesquisa -->
+        <div class="d-flex justify-content-between mb-2 flex-column gap-md-2 ">
+            <input type="text" v-model="searchQuery" class="form-control mb-2 mb-md-0 w-100 w-md-50"
+                placeholder="Buscar cliente por nome, email ou telefone" />
+
+            <span class="text-muted p-1">
+                {{ searchQuery ? 'Resultado da busca: ' + filteredClients.length : 'Total de clientes cadastrados: ' +
+                    totalClients }}
+            </span>
+
+        </div>
+
+        <!-- Tabela de Clientes -->
         <div class="table-responsive">
-            <table class="table table-striped mt-4">
+            <table class="table table-striped table-sm mt-4">
                 <thead>
                     <tr>
                         <th>Avatar</th>
@@ -15,7 +29,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="client in filteredClients" :key="client.id">
+                    <tr v-for="client in filteredClients" :key="client.id" style="font-size: 0.875rem;">
                         <td class="align-middle">
                             <img :src="getAvatarUrl(client.name)" alt="Avatar" class="avatar-img" />
                         </td>
@@ -30,11 +44,13 @@
                             </button>
                             <div v-if="dropdownClientId === client.id" class="dropdown-menu show">
                                 <button class="dropdown-item d-flex align-items-center gap-1"
-                                    @click="openEditModal(client)"><span
-                                        class="material-symbols-rounded">edit</span>Editar</button>
+                                    @click="openEditModal(client); closeDropdown()">
+                                    <span class="material-symbols-rounded">edit</span>Editar
+                                </button>
                                 <button class="dropdown-item text-danger d-flex align-items-center gap-1"
-                                    @click="deleteClient(client.id)"><span
-                                        class="material-symbols-rounded">delete</span>Excluir</button>
+                                    @click="deleteClient(client.id); closeDropdown()">
+                                    <span class="material-symbols-rounded">delete</span>Excluir
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -49,9 +65,7 @@
                 <div class="modal-content">
                     <div class="modal-header d-flex justify-content-between">
                         <h5 class="modal-title">Editar Cliente</h5>
-                        <span class="material-symbols-rounded" @click="closeEditModal">
-                            cancel
-                        </span>
+                        <span class="material-symbols-rounded" @click="closeEditModal">cancel</span>
                     </div>
                     <div class="modal-body">
                         <form @submit.prevent="updateClient">
@@ -71,9 +85,7 @@
                                     required />
                             </div>
                             <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
-                                <span class="material-symbols-rounded">
-                                    save
-                                </span>Salvar
+                                <span class="material-symbols-rounded">save</span>Salvar
                             </button>
                         </form>
                     </div>
@@ -89,6 +101,7 @@ import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firesto
 import { db } from '@/firebaseConfig.js';
 
 const clients = ref([]);
+const searchQuery = ref('');
 const dropdownClientId = ref(null);
 const isEditModalOpen = ref(false);
 const editClientData = ref({
@@ -98,6 +111,7 @@ const editClientData = ref({
     phone: ''
 });
 
+// Função para carregar os clientes do Firestore
 const loadClients = async () => {
     const querySnapshot = await getDocs(collection(db, 'clients'));
     clients.value = querySnapshot.docs.map(doc => ({
@@ -106,11 +120,13 @@ const loadClients = async () => {
     }));
 };
 
+// Função para buscar o avatar com base no nome
 const getAvatarUrl = (name) => {
     const gender = name.length % 2 === 0 ? 'boy' : 'girl';
     return `https://avatar.iran.liara.run/public/${gender}?username=${name}`;
 };
 
+// Função para formatar datas
 const formatDate = (date) => {
     if (!date) return 'N/A';
     if (typeof date.toDate === 'function') {
@@ -122,14 +138,25 @@ const formatDate = (date) => {
     return 'N/A';
 };
 
-// Computed property to filter out administrators
+// Filtro de clientes com base na pesquisa e excluindo o administrador
 const filteredClients = computed(() => {
-    return clients.value.filter(client => client.role !== 'admin');
+    return clients.value
+        .filter(client => client.role !== 'admin') // Exclui o administrador da listagem
+        .filter(client => {
+            const searchTerm = searchQuery.value.toLowerCase();
+            return (
+                client.name.toLowerCase().includes(searchTerm) ||
+                client.email.toLowerCase().includes(searchTerm) ||
+                client.phone.includes(searchTerm)
+            );
+        });
 });
 
-const toggleDropdown = (clientId) => {
-    dropdownClientId.value = dropdownClientId.value === clientId ? null : clientId;
-};
+const totalClients = computed(() => {
+    return clients.value.filter(client => client.role !== 'admin').length;
+});
+
+
 
 const openEditModal = (client) => {
     editClientData.value = { ...client };
@@ -167,6 +194,14 @@ const deleteClient = async (clientId) => {
     }
 };
 
+const toggleDropdown = (clientId) => {
+    dropdownClientId.value = dropdownClientId.value === clientId ? null : clientId;
+};
+
+const closeDropdown = () => {
+    dropdownClientId.value = null;
+};
+
 onMounted(() => {
     loadClients();
 });
@@ -180,8 +215,9 @@ onMounted(() => {
     object-fit: cover;
 }
 
-.table {
-    width: 100%;
+.table-sm {
+    font-size: 0.875rem;
+    /* Letra miúda */
 }
 
 .align-middle {
@@ -233,15 +269,19 @@ onMounted(() => {
     background-color: #fff;
     border: 1px solid #dee2e6;
     border-radius: 0.3rem;
-    outline: 0;
 }
 
 .modal-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 1rem;
+    align-items: center;
+    padding: 1rem 1rem;
     border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+    margin-bottom: 0;
+    line-height: 1.5;
 }
 
 .modal-body {
@@ -249,56 +289,22 @@ onMounted(() => {
     padding: 1rem;
 }
 
-.modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 1rem;
-    border-top: 1px solid #dee2e6;
+.btn {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: #000;
 }
 
-.material-symbols-rounded {
-    font-size: 1.2rem;
-    cursor: pointer;
+.btn:hover {
+    background-color: #f8f9fa;
 }
 
 @media (max-width: 768px) {
-    .table {
-        font-size: 14px;
-    }
-
-    .avatar-img {
-        width: 30px;
-        height: 30px;
-    }
-
-    .dropdown-menu {
-        min-width: 120px;
-    }
-
-    th,
-    td {
-        padding: 0.5rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .table {
-        font-size: 12px;
-    }
-
-    .avatar-img {
-        width: 35px;
-        height: 35px;
-    }
-
-    th,
-    td {
-        padding: 0.3rem;
-    }
-
-    .modal-dialog {
-        max-width: 90%;
+    .w-md-50 {
+        width: 100%;
     }
 }
 </style>

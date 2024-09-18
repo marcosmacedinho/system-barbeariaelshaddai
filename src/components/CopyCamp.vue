@@ -23,7 +23,7 @@ const sysapp = inject('sysapp');
     z-index: 1000;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .icon {
@@ -41,6 +41,15 @@ const sysapp = inject('sysapp');
         bottom: 20px;
         right: 20px;
         left: auto;
+        gap: 2px;
+    }
+
+    .copyr p {
+        font-size: 0.55rem;
+    }
+
+    .icon {
+        font-size: 0.8rem;
     }
 }
 </style>

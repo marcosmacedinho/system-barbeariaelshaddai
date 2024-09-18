@@ -1,70 +1,80 @@
 <template>
     <div>
-        <h3 class="d-md-block">Agendamentos</h3> <!-- Título escondido em mobile -->
+        <div class="header mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                <h4 class="title mb-3 mb-md-0">Agendamentos</h4>
 
-        <!-- Botão de Ações para Mobile -->
-        <div class="d-flex justify-content-end mb-3">
-            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="toggleActionsMenu">
-                <span class="material-symbols-rounded">delete</span> Limpeza
-            </button>
+                <div class="d-flex flex-row flex-sm-row align-items-center align-items-sm-center gap-2">
+                    <select v-model="filterStatus" class="form-select form-select-sm w-auto">
+                        <option value="">Todos</option>
+                        <option value="adiado">Adiado</option>
+                        <option value="despachado">Despachado</option>
+                    </select>
+
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-1 mt-sm-0"
+                        @click="toggleActionsMenu">
+                        <span class="material-symbols-rounded">delete</span> Limpar
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Menu de Ações para Mobile -->
-        <div v-if="showActionsMenu"
-            class="actions-menu d-flex flex-md-row align-items-end mb-3 justify-content-around gap-3">
-            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="clearAppointments('hour')">
-                <span class="material-symbols-rounded">watch_later</span> Última Hora
-            </button>
-            <button class="btn btn-sm btn-light d-flex align-items-center gap-1" @click="clearAppointments('month')">
-                <span class="material-symbols-rounded">calendar_view_month</span> Último Mês
-            </button>
-            <button class="btn btn-sm btn-light d-flex align-items-center gap-1 text-danger"
-                @click="clearAppointments('all')">
-                <span class="material-symbols-rounded">delete_forever</span> Todo Período
-            </button>
-        </div>
 
-        <!-- Verifica se há agendamentos -->
-        <div v-if="appointments.length > 0" class="row mt-2">
-            <div class="col-12 mb-2" v-for="appointment in appointments" :key="appointment.id">
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="d-flex flex-column flex-grow-1">
-                            <h5 class="card-title mb-1">{{ appointment.name }}</h5>
-                            <p class="text-muted mb-1">{{ appointment.phone }}</p>
-                            <p class="text-muted mb-1">Horário: {{ appointment.time }}</p>
-                        </div>
-                        <button class="btn btn-sm btn-link text-muted" @click="toggleDropdown(appointment.id)">
-                            <span class="material-symbols-rounded">more_vert</span>
-                        </button>
+
+        <transition name="slide-fade">
+            <div v-if="showActionsMenu" class="actions-menu d-flex flex-column mb-3 gap-3 p-3">
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                    @click="clearAppointments('hour')">
+                    <span class="material-symbols-rounded">watch_later</span> Última Hora
+                </button>
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                    @click="clearAppointments('month')">
+                    <span class="material-symbols-rounded">calendar_view_month</span> Último Mês
+                </button>
+                <button class="btn btn-outline-danger d-flex align-items-center gap-1"
+                    @click="clearAppointments('all')">
+                    <span class="material-symbols-rounded">delete_forever</span> Todo Período
+                </button>
+            </div>
+        </transition>
+
+        <div v-if="filteredAppointments.length > 0" class="appointments-list">
+            <div class="card appointment-card mb-3" v-for="appointment in filteredAppointments" :key="appointment.id">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="d-flex flex-column">
+                        <h5 class="card-title">Cliente: {{ appointment.name }}</h5>
+                        <p class="text-muted mb-0">Contato: {{ appointment.phone }}</p>
+                        <p class="text-muted mb-0">Agendado para às {{ appointment.time }}</p>
                     </div>
+                    <button class="btn btn-sm btn-icon" @click="toggleDropdown(appointment.id)">
+                        <span class="material-symbols-rounded">more_vert</span>
+                    </button>
+                </div>
 
-                    <!-- Dropdown Menu: aparece logo abaixo das informações do cliente -->
+                <transition name="fade">
                     <div v-if="dropdownAppointmentId === appointment.id"
-                        class="menu-options d-flex justify-content-between px-2 pb-2">
-                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1"
+                        class="menu-options d-flex justify-content-around py-2">
+                        <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
                             @click="deferAppointment(appointment)">
                             <span class="material-symbols-rounded">schedule</span> Adiar
                         </button>
-                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1 text-danger"
+                        <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
                             @click="cancelAppointment(appointment.id)">
                             <span class="material-symbols-rounded">cancel</span> Despachar
                         </button>
-                        <button class="btn btn-light btn-sm d-flex align-items-center gap-1"
+                        <button class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1"
                             @click="editAppointment(appointment.id)">
                             <span class="material-symbols-rounded">edit</span> Editar
                         </button>
                     </div>
-                </div>
+                </transition>
             </div>
         </div>
 
         <NothingHere v-else />
 
-        <!-- Modal de Edição -->
-        <div v-if="isEditModalOpen" class="modal fade show d-block" tabindex="-1"
-            style="background: rgba(0, 0, 0, 0.5);">
-            <div class="modal-dialog modal-sm"> <!-- Modal menor -->
+        <transition name="fade">
+            <div v-if="isEditModalOpen" class="modal-overlay">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Editar Horário</h5>
@@ -72,7 +82,7 @@
                     </div>
                     <div class="modal-body">
                         <form @submit.prevent="updateAppointment">
-                            <input v-model="editAppointmentData.time" class="form-control mb-2" type="text"
+                            <input v-model="editAppointmentData.time" class="form-control mb-3" type="text"
                                 placeholder="Novo Horário" required />
                             <button type="submit"
                                 class="btn btn-primary btn-sm w-100 d-flex justify-content-center align-items-center gap-1">
@@ -82,24 +92,31 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </transition>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig.js';
 import { useAlert } from '@/stores/alert';
-import NothingHere from '@/components/NothingHere.vue'; // Importa o componente NothingHere
+import NothingHere from '@/components/NothingHere.vue';
 
 const appointments = ref([]);
 const dropdownAppointmentId = ref(null);
 const isEditModalOpen = ref(false);
 const editAppointmentData = ref({ id: '', time: '' });
-const showActionsMenu = ref(false); // Controla a visibilidade do menu de ações
+const showActionsMenu = ref(false);
 const alert = useAlert();
+const filterStatus = ref('');
 
+const filteredAppointments = computed(() => {
+    if (!filterStatus.value) {
+        return appointments.value;
+    }
+    return appointments.value.filter(appointment => appointment.status === filterStatus.value);
+});
 const loadAppointments = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, 'bookings'));
@@ -173,7 +190,6 @@ const clearAppointments = async (period) => {
     const now = new Date();
     let cutoffDate;
 
-    // Define a data limite com base no período selecionado
     switch (period) {
         case 'hour':
             cutoffDate = new Date(now.getTime() - 60 * 60 * 1000); // Última hora
@@ -188,15 +204,38 @@ const clearAppointments = async (period) => {
     }
 
     try {
+        const batch = db.batch(); // Usando batch para deletar múltiplos documentos de forma eficiente
+
+        if (cutoffDate) {
+            // Filtrar e remover os agendamentos com base na data
+            appointments.value.forEach((appointment) => {
+                const appointmentDate = new Date(appointment.time); // Considera o campo `time` como a data do agendamento
+                if (appointmentDate < cutoffDate) {
+                    const docRef = doc(db, 'bookings', appointment.id);
+                    batch.delete(docRef); // Marca o documento para exclusão no Firestore
+                }
+            });
+        } else {
+            // Remove todos os agendamentos
+            appointments.value.forEach((appointment) => {
+                const docRef = doc(db, 'bookings', appointment.id);
+                batch.delete(docRef); // Marca o documento para exclusão no Firestore
+            });
+        }
+
+        await batch.commit(); // Executa todas as exclusões de uma vez
+        alert.show('Agendamentos limpos com sucesso!', 200);
+
+        // Após a exclusão no Firestore, atualiza a interface localmente
         if (cutoffDate) {
             appointments.value = appointments.value.filter(appointment => {
-                const appointmentDate = new Date(appointment.time); // Considera o campo `time` como a data do agendamento
+                const appointmentDate = new Date(appointment.time);
                 return appointmentDate >= cutoffDate;
             });
         } else {
-            appointments.value = []; // Remove todos
+            appointments.value = []; // Limpa a lista localmente
         }
-        alert.show('Agendamentos limpos com sucesso!', 200);
+
         showActionsMenu.value = false; // Fecha o menu de ações após a limpeza
     } catch (error) {
         alert.show('Erro ao limpar agendamentos.', 500);
@@ -204,34 +243,93 @@ const clearAppointments = async (period) => {
     }
 };
 
+
 onMounted(loadAppointments);
 </script>
 
 <style scoped>
-.card {
-    border: 1px solid #ddd;
+.actions-menu {
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    background-color: #f8f9fa;
+}
+
+.appointment-card {
     border-radius: 0.5rem;
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
 }
 
 .menu-options {
-    background: #f8f9fa;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid #eee;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: #555;
+    padding: 0;
+    font-size: 1.5rem;
+}
+
+.btn-icon:hover {
+    color: #000;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
+    background-color: white;
+    padding: 2rem;
     border-radius: 0.5rem;
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
 }
 
-.actions-menu button {
-    margin-bottom: 0.5rem;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.btn-link {
-    color: #000;
-    text-decoration: none;
+.modal-title {
+    font-size: 1.25rem;
 }
 
-.btn-link:hover {
-    color: #007bff;
+.btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.1s ease;
+}
+
+.slide-fade-enter,
+.slide-fade-leave-to {
+    transform: translatey(-10px);
+    opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity .8s;
+
+}
+
+.fade-enter,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

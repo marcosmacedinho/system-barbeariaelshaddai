@@ -3,11 +3,8 @@
         <transition name="bounce">
             <div v-if="showToast" class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
                 <div class="toast fade show" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="toast-header">
-                        <span class="material-symbols-rounded me-2">{{ toastIcon }}</span>
-                        <strong class="me-auto">{{ toastTitle }}</strong>
-                    </div>
                     <div class="toast-body">
+                        <span class="material-symbols-rounded me-2">{{ toastIcon }}</span>
                         {{ toastMessage }}
                     </div>
                 </div>
@@ -21,9 +18,8 @@ import { ref, onMounted, onUnmounted } from 'vue';
 
 const showToast = ref(false);
 const toastMessage = ref('');
-const toastTitle = ref('Conexão');
 const toastIcon = ref('wifi'); // Ícone inicial é o de conexão normal
-let intervalId = null;
+let connectionChecked = false; // Variável para evitar múltiplas verificações
 
 const showToastMessage = (message, icon) => {
     toastMessage.value = message;
@@ -35,7 +31,13 @@ const showToastMessage = (message, icon) => {
 };
 
 const handleOffline = () => {
-    showToastMessage('Você está offline.', 'wifi_off');
+    showToastMessage('Você não está conectado à internet.', 'wifi_off');
+};
+
+const handleOnline = () => {
+    // Reseta a flag de verificação ao voltar online
+    connectionChecked = false;
+    showToastMessage('Você está conectado novamente.', 'wifi');
 };
 
 const checkConnectionSpeed = () => {
@@ -44,44 +46,46 @@ const checkConnectionSpeed = () => {
             const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             const downlink = connection.downlink || 1;
 
-            if (downlink < 2) {
+            if (downlink < 2 && !connectionChecked) {
                 showToastMessage('Sua conexão está lenta.', 'signal_wifi_0_bar');
-            } else {
-                showToastMessage('Conectado', 'wifi');
+                connectionChecked = true; // Marca como verificado para não repetir a checagem
             }
         } else {
             console.warn('API de Network Information não suportada.');
         }
     };
 
-    // Checa o status da conexão inicialmente
     if (!navigator.onLine) {
         showToastMessage('Você está offline.', 'wifi_off');
     } else {
         updateConnectionStatus();
     }
-
-    intervalId = setInterval(updateConnectionStatus, 10000);
-
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', handleOffline);
-
-    onUnmounted(() => {
-        window.removeEventListener('online', updateConnectionStatus);
-        window.removeEventListener('offline', handleOffline);
-        clearInterval(intervalId); // Limpa o intervalo ao desmontar o componente
-    });
 };
 
 onMounted(() => {
     checkConnectionSpeed();
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if ('connection' in navigator) {
+        navigator.connection.addEventListener('change', checkConnectionSpeed);
+    }
+});
+
+onUnmounted(() => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+
+    if ('connection' in navigator) {
+        navigator.connection.removeEventListener('change', checkConnectionSpeed);
+    }
 });
 </script>
 
 <style scoped>
 .toast-container {
     z-index: 1050;
-    width: 270px;
 }
 
 .bounce-enter-active,
@@ -110,20 +114,17 @@ onMounted(() => {
 }
 
 .toast {
-    min-width: 250px;
+    width: fit-content;
     border-radius: 0.5rem;
     background-color: #343a40;
     color: #fff;
 }
 
-.toast-header {
-    background-color: #495057;
-    color: #fff;
-    border-bottom: 1px solid #6c757d;
-}
-
 .toast-body {
     font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .material-symbols-rounded {
