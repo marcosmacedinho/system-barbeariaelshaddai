@@ -12,6 +12,7 @@
         <option value="" disabled>Escolha um horário</option>
         <option v-for="time in availableTimes" :key="time" :value="time">{{ time }}</option>
       </select>
+      
     </div>
   </div>
 </template>
@@ -81,7 +82,7 @@ const fetchAvailableTimes = async () => {
 
 // Função para emitir a seleção de horário
 const selectTime = () => {
-  emit('select', selectedTime.value);
+  emit('select', { day: selectedDay.value, time: selectedTime.value });
 };
 
 // Função para emitir a seleção de dia

@@ -1,254 +1,210 @@
 <template>
     <div>
-        <div class="header mb-4">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-                <h4 class="title mb-3 mb-md-0">Agendamentos</h4>
-
-                <div class="d-flex flex-row flex-sm-row align-items-center align-items-sm-center gap-2">
-                    <select v-model="filterStatus" class="form-select form-select-sm w-auto">
-                        <option value="">Todos</option>
-                        <option value="adiado">Adiado</option>
-                        <option value="despachado">Despachado</option>
-                    </select>
-
-                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-1 mt-sm-0"
-                        @click="toggleActionsMenu">
-                        <span class="material-symbols-rounded">delete</span> Limpar
-                    </button>
-                </div>
-            </div>
+      <div class="header mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+          <h4 class="title mb-3 mb-md-0">Agendamentos</h4>
+          <div class="d-flex flex-row flex-sm-row align-items-center gap-2">
+            <select v-model="filterStatus" class="form-select form-select-sm w-auto">
+              <option value="">Todos</option>
+              <option value="adiado">Adiado</option>
+              <option value="despachado">Despachado</option>
+            </select>
+            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" @click="toggleActionsMenu">
+              <span class="material-symbols-rounded">delete</span> Limpar
+            </button>
+          </div>
         </div>
-
-        <transition name="slide-fade">
-            <div v-if="showActionsMenu" class="actions-menu d-flex flex-column mb-3 gap-3 p-3">
-                <button class="btn btn-outline-secondary d-flex align-items-center gap-1"
-                    @click="clearAppointments('hour')">
-                    <span class="material-symbols-rounded">watch_later</span> Última Hora
-                </button>
-                <button class="btn btn-outline-secondary d-flex align-items-center gap-1"
-                    @click="clearAppointments('month')">
-                    <span class="material-symbols-rounded">calendar_view_month</span> Último Mês
-                </button>
-                <button class="btn btn-outline-danger d-flex align-items-center gap-1"
-                    @click="clearAppointments('all')">
-                    <span class="material-symbols-rounded">delete_forever</span> Todo Período
-                </button>
-            </div>
-        </transition>
-
-        <div v-if="filteredAppointments.length > 0" class="appointments-list">
-            <div class="card appointment-card mb-3" v-for="appointment in filteredAppointments" :key="appointment.id">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div class="d-flex flex-column">
-                        <h5 class="card-title"><strong>Nome:</strong> {{ appointment.name }}</h5>
-                        <p class="text-muted mb-0"><strong>Contato:</strong> {{ appointment.phone }}</p>
-                        <p class="text-muted mb-0"><strong>Dia:</strong> {{ appointment.day }}</p>
-                        <p class="text-muted mb-0"><strong>Horário:</strong> {{ appointment.time }}</p>
-                    </div>
-                    <button class="btn btn-sm btn-icon" @click="toggleDropdown(appointment.id)">
-                        <span class="material-symbols-rounded">more_vert</span>
-                    </button>
-                </div>
-
-                <transition name="fade">
-                    <div v-if="dropdownAppointmentId === appointment.id"
-                        class="menu-options d-flex justify-content-around py-2">
-                        <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-                            @click="deferAppointment(appointment)">
-                            <span class="material-symbols-rounded">schedule</span> Adiar
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-                            @click="cancelAppointment(appointment.id)">
-                            <span class="material-symbols-rounded">cancel</span> Despachar
-                        </button>
-                        <button class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1"
-                            @click="editAppointment(appointment.id)">
-                            <span class="material-symbols-rounded">edit</span> Editar
-                        </button>
-                    </div>
-                </transition>
-            </div>
+      </div>
+  
+      <transition name="slide-fade">
+        <div v-if="showActionsMenu" class="actions-menu d-flex flex-column mb-3 gap-3 p-3">
+          <button class="btn btn-outline-secondary d-flex align-items-center gap-1" @click="clearAppointments('hour')">
+            <span class="material-symbols-rounded">watch_later</span> Última Hora
+          </button>
+          <button class="btn btn-outline-secondary d-flex align-items-center gap-1" @click="clearAppointments('month')">
+            <span class="material-symbols-rounded">calendar_view_month</span> Último Mês
+          </button>
+          <button class="btn btn-outline-danger d-flex align-items-center gap-1" @click="clearAppointments('all')">
+            <span class="material-symbols-rounded">delete_forever</span> Todo Período
+          </button>
         </div>
-
-        <NothingHere v-else />
-
-        <transition name="fade">
-            <div v-if="isEditModalOpen" class="modal-overlay">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Editar Horário</h5>
-                        <button type="button" class="btn-close" @click="closeEditModal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form @submit.prevent="updateAppointment">
-                            <input v-model="editAppointmentData.time" class="form-control mb-3" type="text"
-                                placeholder="Novo Horário" required />
-                            <button type="submit"
-                                class="btn btn-primary btn-sm w-100 d-flex justify-content-center align-items-center gap-1">
-                                <span class="material-symbols-rounded">save</span> Salvar
-                            </button>
-                        </form>
-                    </div>
-                </div>
+      </transition>
+  
+      <div v-if="filteredAppointments.length > 0" class="appointments-list">
+        <div class="card appointment-card mb-3" v-for="appointment in filteredAppointments" :key="appointment.id">
+          <div class="card-body d-flex justify-content-between align-items-center">
+            <div class="d-flex flex-column">
+              <h5 class="card-title"><strong>Nome:</strong> {{ appointment.name }}</h5>
+              <p class="text-muted mb-0"><strong>Contato:</strong> {{ appointment.phone }}</p>
+              <p class="text-muted mb-0"><strong>Dia:</strong> {{ appointment.day }}</p>
+              <p class="text-muted mb-0"><strong>Horário:</strong> {{ appointment.time }}</p>
             </div>
-        </transition>
+            <button class="btn btn-sm btn-icon" @click="toggleDropdown(appointment.id)">
+              <span class="material-symbols-rounded">more_vert</span>
+            </button>
+          </div>
+  
+          <transition name="fade">
+            <div v-if="dropdownAppointmentId === appointment.id" class="menu-options d-flex justify-content-around py-2">
+              <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" @click="openDeferModal(appointment)">
+                <span class="material-symbols-rounded">schedule</span> Adiar
+              </button>
+              <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" @click="cancelAppointment(appointment.id)">
+                <span class="material-symbols-rounded">cancel</span> Despachar
+              </button>
+            </div>
+          </transition>
+        </div>
+      </div>
+  
+      <NothingHere v-else />
+  
+      <DeferModal
+        v-if="isDeferModalOpen"
+        :appointment="deferAppointmentData"
+        @close="closeDeferModal"
+        @confirm="deferAppointment"
+      />
     </div>
-</template>
-
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import { collection, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/firebaseConfig.js';
-import { useAlert } from '@/stores/alert';
-import NothingHere from '@/components/NothingHere.vue';
-
-const appointments = ref([]);
-const dropdownAppointmentId = ref(null);
-const isEditModalOpen = ref(false);
-const editAppointmentData = ref({ id: '', time: '' });
-const showActionsMenu = ref(false);
-const alert = useAlert();
-const filterStatus = ref('');
-
-const filteredAppointments = computed(() => {
+  </template>
+  
+  <script setup>
+  import { ref, onMounted, computed } from 'vue';
+  import { collection, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+  import { db } from '@/firebaseConfig.js';
+  import { useAlert } from '@/stores/alert';
+  import NothingHere from '@/components/NothingHere.vue';
+  import DeferModal from '@/components/DeferModal.vue';
+  
+  const appointments = ref([]);
+  const dropdownAppointmentId = ref(null);
+  const isDeferModalOpen = ref(false);
+  const deferAppointmentData = ref(null);
+  const showActionsMenu = ref(false);
+  const alert = useAlert();
+  const filterStatus = ref('');
+  
+  const filteredAppointments = computed(() => {
     if (!filterStatus.value) {
-        return appointments.value;
+      return appointments.value;
     }
     return appointments.value.filter(appointment => appointment.status === filterStatus.value);
-});
-
-const loadAppointments = () => {
+  });
+  
+  const loadAppointments = () => {
     try {
-        const q = query(collection(db, 'bookings'));
-
-        // Listener em tempo real
-        onSnapshot(q, (querySnapshot) => {
-            appointments.value = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-        });
+      const q = query(collection(db, 'bookings'));
+      onSnapshot(q, (querySnapshot) => {
+        appointments.value = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      });
     } catch (error) {
-        alert.show('Erro ao carregar agendamentos.', 500);
-        console.error('Erro ao carregar agendamentos:', error);
+      alert.show('Erro ao carregar agendamentos.', 500);
+      console.error('Erro ao carregar agendamentos:', error);
     }
-};
-
-const toggleDropdown = (appointmentId) => {
+  };
+  
+  const toggleDropdown = (appointmentId) => {
     dropdownAppointmentId.value = dropdownAppointmentId.value === appointmentId ? null : appointmentId;
-};
-
-const deferAppointment = async (appointment) => {
+  };
+  
+  const openDeferModal = (appointment) => {
+    deferAppointmentData.value = appointment;
+    isDeferModalOpen.value = true;
+  };
+  
+  const closeDeferModal = () => {
+    isDeferModalOpen.value = false;
+  };
+  
+  const deferAppointment = async ({ id, newDate }) => {
     try {
-        const docRef = doc(db, 'bookings', appointment.id);
-        await updateDoc(docRef, { status: 'adiado' });
-        appointments.value = appointments.value.map(app => (app.id === appointment.id ? { ...app, status: 'adiado' } : app));
-        alert.show('Agendamento adiado com sucesso!', 200);
+      const docRef = doc(db, 'bookings', id);
+      await updateDoc(docRef, { status: 'adiado', day: newDate.day, time: newDate.time });
+      appointments.value = appointments.value.map(app =>
+        app.id === id ? { ...app, status: 'adiado', day: newDate.day, time: newDate.time } : app
+      );
+      alert.show('Agendamento adiado com sucesso!', 200);
+      closeDeferModal();
     } catch (error) {
-        alert.show('Erro ao adiar agendamento.', 500);
-        console.error('Erro ao adiar agendamento:', error);
+      alert.show('Erro ao adiar agendamento.', 500);
+      console.error('Erro ao adiar agendamento:', error);
     }
-};
-
-const cancelAppointment = async (id) => {
+  };
+  
+  const cancelAppointment = async (id) => {
     try {
-        await deleteDoc(doc(db, 'bookings', id));
-        appointments.value = appointments.value.filter(app => app.id !== id);
-        alert.show('Agendamento despachado com sucesso!', 200);
+      await deleteDoc(doc(db, 'bookings', id));
+      appointments.value = appointments.value.filter(app => app.id !== id);
+      alert.show('Agendamento despachado com sucesso!', 200);
     } catch (error) {
-        alert.show('Erro ao despachar agendamento.', 500);
-        console.error('Erro ao despachar agendamento:', error);
+      alert.show('Erro ao despachar agendamento.', 500);
+      console.error('Erro ao despachar agendamento:', error);
     }
-};
-
-const editAppointment = (id) => {
-    const appointment = appointments.value.find(app => app.id === id);
-    if (appointment) {
-        editAppointmentData.value = { id: appointment.id, time: appointment.time };
-        isEditModalOpen.value = true;
-    }
-};
-
-const closeEditModal = () => {
-    isEditModalOpen.value = false;
-};
-
-const updateAppointment = async () => {
-    try {
-        await updateDoc(doc(db, 'bookings', editAppointmentData.value.id), {
-            time: editAppointmentData.value.time,
-        });
-        closeEditModal();
-        loadAppointments();
-    } catch (error) {
-        alert.show('Erro ao atualizar o agendamento.', 500);
-        console.error('Erro ao atualizar o agendamento:', error);
-    }
-};
-
-const toggleActionsMenu = () => {
+  };
+  
+  const toggleActionsMenu = () => {
     showActionsMenu.value = !showActionsMenu.value;
-};
-
-const clearAppointments = async (period) => {
+  };
+  
+  const clearAppointments = async (period) => {
     const now = new Date();
     let cutoffDate;
-
+  
     switch (period) {
-        case 'hour':
-            cutoffDate = new Date(now.getTime() - 60 * 60 * 1000); // Última hora
-            break;
-        case 'month':
-            cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Último mês
-            break;
-        case 'all':
-        default:
-            cutoffDate = null; // Remove todos
-            break;
+      case 'hour':
+        cutoffDate = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case 'month':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+      default:
+        cutoffDate = null;
+        break;
     }
-
+  
     try {
-        const batch = db.batch(); // Usando batch para deletar múltiplos documentos de forma eficiente
-
-        if (cutoffDate) {
-            // Filtrar e remover os agendamentos com base na data
-            appointments.value.forEach((appointment) => {
-                const appointmentDate = new Date(appointment.time); // Considera o campo `time` como a data do agendamento
-                if (appointmentDate < cutoffDate) {
-                    const docRef = doc(db, 'bookings', appointment.id);
-                    batch.delete(docRef); // Marca o documento para exclusão no Firestore
-                }
-            });
-        } else {
-            // Remove todos os agendamentos
-            appointments.value.forEach((appointment) => {
-                const docRef = doc(db, 'bookings', appointment.id);
-                batch.delete(docRef); // Marca o documento para exclusão no Firestore
-            });
-        }
-
-        await batch.commit(); // Executa todas as exclusões de uma vez
-        alert.show('Agendamentos limpos com sucesso!', 200);
-
-        // Após a exclusão no Firestore, atualiza a interface localmente
-        if (cutoffDate) {
-            appointments.value = appointments.value.filter(appointment => {
-                const appointmentDate = new Date(appointment.time);
-                return appointmentDate >= cutoffDate;
-            });
-        } else {
-            appointments.value = []; // Limpa a lista localmente
-        }
-
-        showActionsMenu.value = false; // Fecha o menu de ações após a limpeza
+      const batch = db.batch();
+  
+      if (cutoffDate) {
+        appointments.value.forEach((appointment) => {
+          const appointmentDate = new Date(appointment.time);
+          if (appointmentDate < cutoffDate) {
+            const docRef = doc(db, 'bookings', appointment.id);
+            batch.delete(docRef);
+          }
+        });
+      } else {
+        appointments.value.forEach((appointment) => {
+          const docRef = doc(db, 'bookings', appointment.id);
+          batch.delete(docRef);
+        });
+      }
+  
+      await batch.commit();
+      alert.show('Agendamentos limpos com sucesso!', 200);
+  
+      if (cutoffDate) {
+        appointments.value = appointments.value.filter(appointment => {
+          const appointmentDate = new Date(appointment.time);
+          return appointmentDate >= cutoffDate;
+        });
+      } else {
+        appointments.value = [];
+      }
+  
+      showActionsMenu.value = false;
     } catch (error) {
-        alert.show('Erro ao limpar agendamentos.', 500);
-        console.error('Erro ao limpar agendamentos:', error);
+      alert.show('Erro ao limpar agendamentos.', 500);
+      console.error('Erro ao limpar agendamentos:', error);
     }
-};
-
-onMounted(loadAppointments);
-</script>
+  };
+  
+  onMounted(loadAppointments);
+  </script>
 
 <style scoped>
 .actions-menu {

@@ -43,19 +43,15 @@ const formData = ref({
   phone: ''
 });
 
-// Variáveis locais
 const localSelectedDay = ref(props.selectedDay);
-const localSelectedTime = ref(props.selectedTime);
+const localSelectedTime = ref(props.selectedTime?.time || null); // Alterado aqui
 
-// Watchers para atualizar as variáveis locais
 watch(() => props.selectedDay, (newValue) => {
   localSelectedDay.value = newValue;
-  console.log('Dia atualizado no formulário:', newValue); // Debugging
 });
 
 watch(() => props.selectedTime, (newValue) => {
-  localSelectedTime.value = newValue;
-  console.log('Horário atualizado no formulário:', newValue); // Debugging
+  localSelectedTime.value = newValue?.time || null; // Alterado aqui
 });
 
 const fetchUserData = async (userId) => {

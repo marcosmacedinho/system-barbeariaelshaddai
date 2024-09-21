@@ -77,6 +77,18 @@ const routes = [
     ]
   },
   {
+    path: '/feedback',
+    component: NoHeaderLayout,
+    children: [
+      {
+        path: '',
+        name: 'Feedback',
+        component: () => import('@/views/FeedbackView.vue'),
+        meta: { requiresAuth: true }
+      }
+    ]
+  },
+  {
     path: '/not-authorized',
     component: NoHeaderLayout,
     children: [

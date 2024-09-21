@@ -9,8 +9,7 @@
 
     <div v-if="selectedTime && selectedDay" class="booking-form-section">
       <h2 class="text-secondary mb-3">Complete seu agendamento</h2>
-      <BookingForm :selectedDay="selectedDay" :selectedTime="selectedTime" @submit="bookAppointment"
-        @close="handleClose" />
+      <BookingForm :selectedDay="selectedDay" :selectedTime="selectedTime" @submit="bookAppointment" @close="handleClose" />
     </div>
 
     <div v-else class="alert alert-info text-center d-flex align-items-center justify-content-center gap-1">
@@ -70,6 +69,6 @@ watch(resetSelection, (newVal) => {
 }
 
 .alert {
-  font-size: 0.8rem
+  font-size: 0.8rem;
 }
 </style>

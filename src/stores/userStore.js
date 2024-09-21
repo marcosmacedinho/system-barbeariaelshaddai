@@ -8,7 +8,8 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     user: null,
     lastLogin: null,
-    loading: true
+    loading: true,
+    isAuthenticated: false // Adiciona a propriedade isAuthenticated
   }),
   actions: {
     async fetchUserInfo() {
@@ -28,9 +29,11 @@ export const useUserStore = defineStore('user', {
             },
             { merge: true }
           )
+          this.isAuthenticated = true // Atualiza isAuthenticated para true
           return true // Login bem-sucedido
         }
       }
+      this.isAuthenticated = false // Atualiza isAuthenticated para false
       return false // Documento do usuário não encontrado
     },
 
@@ -45,6 +48,7 @@ export const useUserStore = defineStore('user', {
 
           this.user = null
           this.lastLogin = null
+          this.isAuthenticated = false // Atualiza isAuthenticated para false
           useAlert().show('Você saiu da sua conta com segurança!', 'success')
         }
       } catch (error) {
@@ -54,28 +58,34 @@ export const useUserStore = defineStore('user', {
 
     initAuthListener(router) {
       onAuthStateChanged(auth, async (user) => {
-        this.loading = true
+        this.loading = true;
+        console.log('User state changed:', user); // Adicione este log
         if (user) {
-          const isLoggedIn = await this.fetchUserInfo()
-
+          const isLoggedIn = await this.fetchUserInfo();
+          console.log('Is logged in:', isLoggedIn); // Adicione este log
+    
           if (isLoggedIn) {
-            const role = this.user?.role
-            const redirectPath = role === 'admin' ? '/barber/appointments' : '/'
+            this.isAuthenticated = true; // Certifique-se de que isso está sendo executado
+            const role = this.user?.role;
+            const redirectPath = role === 'admin' ? '/barber/appointments' : '/';
             if (router.currentRoute.value.path !== redirectPath) {
-              router.replace(redirectPath)
+              router.replace(redirectPath);
             }
           } else {
-            router.replace('/login') // Redireciona para login se não estiver logado
+            this.isAuthenticated = false; // Certifique-se de que isso está sendo executado
+            router.replace('/login');
           }
         } else {
-          this.user = null
-          this.lastLogin = null
+          this.user = null;
+          this.lastLogin = null;
+          this.isAuthenticated = false; // Certifique-se de que isso está sendo executado
           if (router.currentRoute.value.path !== '/register') {
-            router.replace('/login')
+            router.replace('/login');
           }
         }
-        this.loading = false
-      })
+        this.loading = false;
+      });
     }
+    
   }
 })
