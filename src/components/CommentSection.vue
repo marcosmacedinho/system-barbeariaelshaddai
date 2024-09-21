@@ -1,144 +1,214 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { auth, db } from '@/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
 import { useAlert } from '@/stores/alert';
+import { useUserStore } from '@/stores/userStore'; 
+import { db } from '@/firebaseConfig'; 
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 const emit = defineEmits(['addComment']);
 const alert = useAlert();
+const userStore = useUserStore();
 
 const newComment = ref('');
 const comments = ref([]);
 const currentUser = ref(null);
 const isAdmin = ref(false);
+const defaultAvatars = [
+  '@/assets/avatars/avatar-boy.png', // Substitua com os caminhos das suas imagens
+  '@/assets/avatars/avatar-girl.png'
+];
 
 const fetchUserRole = async () => {
-    const user = auth.currentUser;
-    if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            currentUser.value = userData; // Armazena os dados do usuário
-            isAdmin.value = userData.role === 'admin'; // Verifica se é admin
-        }
-    }
+  const user = userStore.user;
+  if (user) {
+    currentUser.value = user;
+    isAdmin.value = user.role === 'admin';
+  }
+};
+
+const fetchComments = async () => {
+  const commentsCollection = collection(db, 'comments');
+  const commentsSnapshot = await getDocs(commentsCollection);
+  comments.value = commentsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
 };
 
 const submitComment = async () => {
-    if (newComment.value.trim()) {
-        const commentData = {
-            text: newComment.value,
-            author: currentUser.value.name,
-            authorId: currentUser.value.uid,
-            createdAt: new Date().toISOString()
-        };
-        emit('addComment', commentData);
-        comments.value.push(commentData); // Adiciona o comentário localmente
-        newComment.value = '';
-        alert.show("Comentário feito. Muito obrigado por nos ajudar!", 200);
+  if (newComment.value.trim() && currentUser.value) {
+    const commentData = {
+      text: newComment.value,
+      author: currentUser.value.name,
+      authorId: currentUser.value.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      await addDoc(collection(db, 'comments'), commentData);
+      emit('addComment', commentData);
+      comments.value.push(commentData);
+      newComment.value = '';
+      alert.show("Comentário feito. Muito obrigado por nos ajudar!", 200);
+    } catch (error) {
+      alert.show("Erro ao enviar comentário. Tente novamente.", 200);
     }
+  }
 };
 
-const deleteComment = (commentId) => {
-    comments.value = comments.value.filter(comment => comment.id !== commentId); // Remove o comentário localmente
+const deleteComment = async (commentId) => {
+  if (isAuthorOrAdmin(commentId)) {
+    await deleteDoc(doc(db, 'comments', commentId));
+    comments.value = comments.value.filter(comment => comment.id !== commentId);
+    alert.show("Comentário excluído com sucesso!", 200);
+  }
 };
 
-const isAuthorOrAdmin = (authorId) => {
-    return currentUser.value && (currentUser.value.uid === authorId || isAdmin.value);
+const editComment = async (commentId, updatedText) => {
+  if (isAuthorOrAdmin(commentId)) {
+    const commentRef = doc(db, 'comments', commentId);
+    await updateDoc(commentRef, { text: updatedText });
+    const commentToUpdate = comments.value.find(comment => comment.id === commentId);
+    commentToUpdate.text = updatedText;
+    alert.show("Comentário editado com sucesso!", 200);
+  }
 };
 
-onMounted(() => {
-    fetchUserRole(); // Carrega o papel do usuário ao montar o componente
+const isAuthorOrAdmin = (commentId) => {
+  const comment = comments.value.find(comment => comment.id === commentId);
+  return currentUser.value && (currentUser.value.id === comment.authorId || isAdmin.value);
+};
+
+onMounted(async () => {
+  await fetchUserRole();
+  await fetchComments();
 });
 </script>
 
 <template>
-    <div class="comment-section">
-        <h3>Comentários</h3>
-        <div class="comments-list">
-            <div v-for="comment in comments" :key="comment.id" class="comment">
-                <p><strong>{{ comment.author }}</strong> - {{ new Date(comment.createdAt).toLocaleString() }}</p>
-                <p>{{ comment.text }}</p>
-                <button v-if="isAuthorOrAdmin(comment.authorId)" @click="deleteComment(comment.id)"
-                    class="delete-button">
-                    <span class="material-symbols-rounded">delete</span>
-                </button>
+  <div class="comment-section">
+    <h3 class="section-title">Comentários</h3>
+    <div class="comments-container">
+      <div class="comments-list">
+        <div v-for="comment in comments" :key="comment.id" class="comment">
+          <div class="comment-header">
+            <img :src="defaultAvatars[comment.authorId % defaultAvatars.length]" alt="Avatar" class="avatar" />
+            <div class="comment-info">
+              <strong>{{ comment.author }}</strong>
+              <p class="comment-text">{{ comment.text }}</p>
+              <span class="comment-date">{{ new Date(comment.createdAt).toLocaleString() }}</span>
             </div>
+            <div class="actions">
+              <span @click="toggleActions(comment.id)" class="material-symbols-rounded">more_vert</span>
+              <div v-if="isAuthorOrAdmin(comment.id)" class="action-menu">
+                <button @click="deleteComment(comment.id)" class="action-button">Excluir</button>
+                <button @click="editComment(comment.id, prompt('Edite seu comentário:', comment.text))" class="action-button">Editar</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="input-container">
-            <input v-model="newComment" @keyup.enter="submitComment" placeholder="Adicionar um comentário..."
-                class="comment-input" />
-            <button @click="submitComment" class="submit-button">Enviar</button>
-        </div>
+      </div>
+      <div class="input-container">
+        <input v-model="newComment" @keyup.enter="submitComment" placeholder="Adicionar um comentário..." class="comment-input" :disabled="!currentUser" />
+        <button @click="submitComment" class="submit-button" :disabled="!currentUser">Enviar</button>
+      </div>
     </div>
+    <div v-if="!currentUser" class="alert alert-warning mt-2">Faça login para comentar.</div>
+  </div>
 </template>
 
 <style scoped>
 .comment-section {
-    margin-top: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+  margin-top: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  margin-bottom: 15px;
+  color: #007bff;
 }
 
 .comments-list {
-    max-height: 300px;
-    overflow-y: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 15px;
 }
 
 .comment {
-    margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    background-color: #f9f9f9;
-    position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
 }
 
-.delete-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: #dc3545;
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
 }
 
-.delete-button:hover {
-    color: #c82333;
+.comment-info {
+  flex-grow: 1;
+}
+
+.comment-text {
+  margin: 5px 0;
+}
+
+.comment-date {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.actions {
+  position: relative;
+  margin-left: 10px;
+}
+
+.action-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  z-index: 10;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
 }
 
 .input-container {
-    display: flex;
-    margin-top: 10px;
+  display: flex;
 }
 
 .comment-input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.comment-input:focus {
-    border-color: #007bff;
-    outline: none;
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .submit-button {
-    margin-left: 10px;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 4px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
+  margin-left: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
 }
 
-.submit-button:hover {
-    background-color: #0056b3;
+.alert {
+  font-size: 0.8rem;
 }
 </style>

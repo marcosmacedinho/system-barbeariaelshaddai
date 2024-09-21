@@ -4,6 +4,8 @@ import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import { auth } from '@/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import LOCAL_AVATAR_MALE from '@/assets/avatars/avatar-boy.png';
+import LOCAL_AVATAR_FEMALE from '@/assets/avatars/avatar-girl.png';
 
 const AVATAR_BASE_URL_MALE = 'https://avatar.iran.liara.run/public/boy?username=';
 const AVATAR_BASE_URL_FEMALE = 'https://avatar.iran.liara.run/public/girl?username=';
@@ -28,7 +30,15 @@ const formatLastLogin = (timestamp) => {
 const setAvatarSrc = (username, gender = 'male') => {
     if (!username) return;
     const baseUrl = gender === 'female' ? AVATAR_BASE_URL_FEMALE : AVATAR_BASE_URL_MALE;
-    avatarSrc.value = `${baseUrl}${username}`;
+
+    const img = new Image();
+    img.src = `${baseUrl}${username}`;
+    img.onload = () => {
+        avatarSrc.value = img.src;
+    };
+    img.onerror = () => {
+        avatarSrc.value = gender === 'female' ? LOCAL_AVATAR_FEMALE : LOCAL_AVATAR_MALE;
+    };
 };
 
 const updateUserInfo = () => {
@@ -36,10 +46,10 @@ const updateUserInfo = () => {
         userType.value = userStore.user?.role === 'admin' ? 'Administrador' : 'Cliente';
         formattedLastLogin.value = formatLastLogin(userStore.lastLogin);
         const username = userStore.user?.name || 'User';
-        const gender = userStore.user?.gender || 'male'; // Supondo que você tenha a informação de gênero no usuário
+        const gender = userStore.user?.gender || 'male';
         setAvatarSrc(username, gender);
     } else {
-        avatarSrc.value = ''; // Clear avatar if no user data
+        avatarSrc.value = ''; // Limpa o avatar se não houver dados do usuário
     }
 };
 
@@ -63,7 +73,7 @@ const logout = async () => {
     if (confirmed) {
         try {
             await userStore.logout();
-            router.replace('/login'); // Redireciona para a tela de login após logout
+            router.replace('/login');
         } catch (error) {
             console.error('Erro ao tentar sair: ', error);
         }
@@ -72,8 +82,9 @@ const logout = async () => {
 </script>
 
 
+
 <template>
-    <header class="d-flex w-100 align-items-center justify-content-between p-3">
+    <header class="d-flex w-100 align-items-center justify-content-between px-3 py-2">
         <div class="d-flex align-items-center gap-2">
             <!-- <img src="@/assets/imgs/logoBES.jpeg" alt="Logo" width="50" height="50" /> -->
 
@@ -87,10 +98,10 @@ const logout = async () => {
 
             <div v-if="userOptionsVisible" class="dropdown-menu-custom">
                 <div class="profile-header d-flex align-items-center p-3">
-                    <img :src="avatarSrc" alt="Avatar" class="rounded-circle me-3" width="60" height="60" />
+                    <img :src="avatarSrc" alt="Avatar" class="rounded-circle me-3" width="55" height="55" />
                     <div>
-                        <h5 class="mb-0">{{ userStore.user?.name || 'Usuário' }}</h5>
-                        <small>{{ userStore.user?.email || 'email@example.com' }}</small>
+                        <h5 class="mb-0 fs-6">{{ userStore.user?.name || 'Usuário' }}</h5>
+                        <small class="fs-6">{{ userStore.user?.email || 'email@example.com' }}</small>
                     </div>
                 </div>
                 <div class="profile-body p-1">
