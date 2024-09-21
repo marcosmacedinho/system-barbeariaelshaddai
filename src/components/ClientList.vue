@@ -2,19 +2,15 @@
     <div>
         <h3 class="mb-4">Clientes Cadastrados</h3>
 
-        <!-- Barra de Pesquisa -->
         <div class="d-flex justify-content-between mb-2 flex-column gap-md-2 ">
-            <input type="text" v-model="searchQuery" class="form-control mb-2 mb-md-0 w-100 w-md-50"
+            <input type="text" v-model="searchQuery" class="form-control mb-2 mb-md-0 w-25"
                 placeholder="Buscar cliente por nome, email ou telefone" />
-
             <span class="text-muted p-1">
                 {{ searchQuery ? 'Resultado da busca: ' + filteredClients.length : 'Total de clientes cadastrados: ' +
                     totalClients }}
             </span>
-
         </div>
 
-        <!-- Tabela de Clientes -->
         <div class="table-responsive">
             <table class="table table-striped table-sm mt-4">
                 <thead>
@@ -23,8 +19,7 @@
                         <th>Nome</th>
                         <th>Email</th>
                         <th>Telefone</th>
-                        <th>Cadastrado em</th>
-                        <th>Último Login</th>
+                        <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -36,8 +31,16 @@
                         <td class="align-middle">{{ client.name }}</td>
                         <td class="align-middle">{{ client.email }}</td>
                         <td class="align-middle">{{ client.phone }}</td>
-                        <td class="align-middle">{{ formatDate(client.createdAt) }}</td>
-                        <td class="align-middle">{{ formatDate(client.lastLogin) }}</td>
+                        <td class="align-middle">
+                            <span :class="isActive(client) ? 'status-active' : 'status-inactive'">
+                                <span class="material-symbols-rounded">
+                                    {{ isActive(client) ? 'radio_button_checked' : 'radio_button_unchecked' }}
+                                </span>
+                                {{ isActive(client) ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </td>
+
+
                         <td class="align-middle position-relative">
                             <button class="btn" @click="toggleDropdown(client.id)">
                                 <span class="material-symbols-rounded">more_vert</span>
@@ -55,6 +58,7 @@
                         </td>
                     </tr>
                 </tbody>
+
             </table>
         </div>
 
@@ -82,7 +86,7 @@
                             <div class="mb-3">
                                 <label class="form-label" for="editPhone">Número de Telefone</label>
                                 <input v-model="editClientData.phone" class="form-control" id="editPhone" type="text"
-                                    required />
+                                    required v-mask="['(##) ####-####', '(##) #####-####']" />
                             </div>
                             <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">
                                 <span class="material-symbols-rounded">save</span>Salvar
@@ -96,9 +100,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig.js';
+import { getAuth, deleteUser } from 'firebase/auth';
 
 const clients = ref([]);
 const searchQuery = ref('');
@@ -111,34 +116,33 @@ const editClientData = ref({
     phone: ''
 });
 
-// Função para carregar os clientes do Firestore
-const loadClients = async () => {
-    const querySnapshot = await getDocs(collection(db, 'clients'));
-    clients.value = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-    }));
-};
-
-// Função para buscar o avatar com base no nome
 const getAvatarUrl = (name) => {
     const gender = name.length % 2 === 0 ? 'boy' : 'girl';
-    return `https://avatar.iran.liara.run/public/${gender}?username=${name}`;
+    const avatarApiUrl = `https://avatar.iran.liara.run/public/${gender}?username=${name}`;
+
+    const localBoyAvatar = new URL('@/assets/avatars/avatar-boy.png', import.meta.url).href;
+    const localGirlAvatar = new URL('@/assets/avatars/avatar-girl.png', import.meta.url).href;
+
+    const img = new Image();
+    img.src = avatarApiUrl;
+
+    img.onerror = () => {
+        return gender === 'boy' ? localBoyAvatar : localGirlAvatar;
+    };
+
+    return avatarApiUrl;
 };
 
-// Função para formatar datas
-const formatDate = (date) => {
-    if (!date) return 'N/A';
-    if (typeof date.toDate === 'function') {
-        return date.toDate().toLocaleString();
+const isActive = (client) => {
+    if (client.lastLogin) {
+        const lastLoginDate = new Date(client.lastLogin);
+        const now = new Date();
+        const daysSinceLastLogin = (now - lastLoginDate) / (1000 * 60 * 60 * 24);
+        return daysSinceLastLogin <= 30; // Considera ativo se logou nos últimos 30 dias
     }
-    if (typeof date === 'string') {
-        return new Date(date).toLocaleString();
-    }
-    return 'N/A';
+    return false;
 };
 
-// Filtro de clientes com base na pesquisa e excluindo o administrador
 const filteredClients = computed(() => {
     return clients.value
         .filter(client => client.role !== 'admin') // Exclui o administrador da listagem
@@ -156,10 +160,19 @@ const totalClients = computed(() => {
     return clients.value.filter(client => client.role !== 'admin').length;
 });
 
+const startClientsListener = () => {
+    const unsubscribe = onSnapshot(collection(db, 'clients'), (snapshot) => {
+        clients.value = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+    });
 
+    return unsubscribe;
+};
 
 const openEditModal = (client) => {
-    editClientData.value = { ...client };
+    editClientData.value = { ...client }; // Carrega os dados do cliente
     isEditModalOpen.value = true;
 };
 
@@ -169,24 +182,66 @@ const closeEditModal = () => {
 
 const updateClient = async () => {
     try {
-        await updateDoc(doc(db, 'clients', editClientData.value.id), {
-            name: editClientData.value.name,
-            email: editClientData.value.email,
-            phone: editClientData.value.phone
-        });
+        const updates = {};
+        const auth = getAuth();
+        const user = auth.currentUser; // Obter o usuário atual
+
+        if (!user) {
+            alert('Usuário não autenticado. Não é possível enviar e-mail de verificação.');
+            return; // Sai da função se o usuário não estiver autenticado
+        }
+
+        let emailChanged = false;
+
+        // Verifica quais campos foram alterados
+        if (editClientData.value.name) {
+            updates.name = editClientData.value.name;
+        }
+        if (editClientData.value.phone) {
+            updates.phone = editClientData.value.phone;
+        }
+        if (editClientData.value.email !== user.email) { // Se o e-mail foi alterado
+            updates.email = editClientData.value.email;
+            emailChanged = true;
+        }
+
+        // Atualiza as informações no Firestore
+        await updateDoc(doc(db, 'clients', editClientData.value.id), updates);
+
+        // Se o e-mail foi alterado, envia um e-mail de verificação
+        if (emailChanged) {
+            try {
+                await user.sendEmailVerification(); // Envia o e-mail de verificação
+                alert('Um e-mail de verificação foi enviado para o novo endereço. Por favor, verifique-o.');
+            } catch (error) {
+                console.error('Erro ao enviar o e-mail de verificação: ', error);
+                alert('Erro ao enviar o e-mail de verificação: ' + error.message);
+            }
+        } else {
+            alert('Cliente atualizado com sucesso!');
+        }
+
         closeEditModal();
-        loadClients(); // Recarregar a lista após a atualização
     } catch (error) {
         console.error('Erro ao atualizar o cliente: ', error);
-        alert('Erro ao atualizar o cliente.');
+        alert('Erro ao atualizar o cliente. ' + error.message);
     }
 };
 
-const deleteClient = async (clientId) => {
+
+
+const deleteClient = async (clientId, email) => {
     if (confirm('Tem certeza que deseja excluir este cliente?')) {
         try {
             await deleteDoc(doc(db, 'clients', clientId));
-            loadClients(); // Recarregar a lista após a exclusão
+
+            const auth = getAuth();
+            const user = auth.currentUser;
+            if (user && user.email === email) {
+                await deleteUser(user);
+            }
+
+            alert('Cliente excluído com sucesso!');
         } catch (error) {
             console.error('Erro ao excluir o cliente: ', error);
             alert('Erro ao excluir o cliente.');
@@ -203,11 +258,16 @@ const closeDropdown = () => {
 };
 
 onMounted(() => {
-    loadClients();
+    const unsubscribe = startClientsListener();
+
+    onUnmounted(() => {
+        unsubscribe();
+    });
 });
 </script>
 
-<style scoped>
+
+<style lang="scss" scoped>
 .avatar-img {
     width: 50px;
     height: 50px;
@@ -215,9 +275,32 @@ onMounted(() => {
     object-fit: cover;
 }
 
+.status-active {
+    color: white;
+    background-color: $success;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    gap: 4px;
+}
+
+.status-inactive {
+    color: white;
+    background-color: $danger;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    gap: 4px;
+}
+
 .table-sm {
     font-size: 0.875rem;
-    /* Letra miúda */
 }
 
 .align-middle {

@@ -1,7 +1,6 @@
-// src/stores/userStore.js
 import { defineStore } from 'pinia'
 import { auth, db } from '@/firebaseConfig'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { useAlert } from '@/stores/alert'
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -17,6 +16,7 @@ export const useUserStore = defineStore('user', {
       if (user) {
         const userDocRef = doc(db, 'clients', user.uid)
         const userDoc = await getDoc(userDocRef)
+
         if (userDoc.exists()) {
           this.user = userDoc.data()
           this.lastLogin = user.metadata.lastSignInTime
@@ -24,38 +24,57 @@ export const useUserStore = defineStore('user', {
           await setDoc(
             userDocRef,
             {
-              ...userDoc.data(),
               lastLogin: this.lastLogin
             },
             { merge: true }
           )
+          return true // Login bem-sucedido
         }
       }
+      return false // Documento do usuário não encontrado
     },
+
     async logout() {
       try {
-        await auth.signOut()
-        this.user = null
-        this.lastLogin = null
-        useAlert().show('Você saiu da sua conta com segurança!', 200)
+        const user = auth.currentUser
+        if (user) {
+          const userDocRef = doc(db, 'clients', user.uid)
+
+          await updateDoc(userDocRef, { isLoggedIn: false })
+          await auth.signOut()
+
+          this.user = null
+          this.lastLogin = null
+          useAlert().show('Você saiu da sua conta com segurança!', 'success')
+        }
       } catch (error) {
-        useAlert().show('Erro ao tentar sair', 500)
+        useAlert().show('Erro ao tentar sair com segurança!', 'error')
       }
     },
+
     initAuthListener(router) {
       onAuthStateChanged(auth, async (user) => {
+        this.loading = true
         if (user) {
-          await this.fetchUserInfo() // Carrega as informações do usuário logado
+          const isLoggedIn = await this.fetchUserInfo()
 
-          const role = this.user?.role
-          const redirectPath = role === 'admin' ? '/barber/appointments' : '/'
-          router.replace(redirectPath)
+          if (isLoggedIn) {
+            const role = this.user?.role
+            const redirectPath = role === 'admin' ? '/barber/appointments' : '/'
+            if (router.currentRoute.value.path !== redirectPath) {
+              router.replace(redirectPath)
+            }
+          } else {
+            router.replace('/login') // Redireciona para login se não estiver logado
+          }
         } else {
           this.user = null
           this.lastLogin = null
-          router.replace('/login') // Redireciona para a página de login se não estiver autenticado
+          if (router.currentRoute.value.path !== '/register') {
+            router.replace('/login')
+          }
         }
-        this.loading = false // Atualiza o estado de carregamento
+        this.loading = false
       })
     }
   }

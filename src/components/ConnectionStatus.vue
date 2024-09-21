@@ -41,24 +41,16 @@ const handleOnline = () => {
 };
 
 const checkConnectionSpeed = () => {
-    const updateConnectionStatus = () => {
-        if ('connection' in navigator) {
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            const downlink = connection.downlink || 1;
-
-            if (downlink < 2 && !connectionChecked) {
-                showToastMessage('Sua conexão está lenta.', 'signal_wifi_0_bar');
-                connectionChecked = true; // Marca como verificado para não repetir a checagem
-            }
-        } else {
-            console.warn('API de Network Information não suportada.');
-        }
-    };
-
     if (!navigator.onLine) {
         showToastMessage('Você está offline.', 'wifi_off');
-    } else {
-        updateConnectionStatus();
+    } else if ('connection' in navigator) {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const downlink = connection.downlink || 1;
+
+        if (downlink < 2 && !connectionChecked) {
+            showToastMessage('Sua conexão está lenta.', 'signal_wifi_0_bar');
+            connectionChecked = true; // Marca como verificado para não repetir a checagem
+        }
     }
 };
 

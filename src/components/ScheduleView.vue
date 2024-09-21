@@ -19,8 +19,6 @@
             </div>
         </div>
 
-
-
         <transition name="slide-fade">
             <div v-if="showActionsMenu" class="actions-menu d-flex flex-column mb-3 gap-3 p-3">
                 <button class="btn btn-outline-secondary d-flex align-items-center gap-1"
@@ -42,9 +40,10 @@
             <div class="card appointment-card mb-3" v-for="appointment in filteredAppointments" :key="appointment.id">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div class="d-flex flex-column">
-                        <h5 class="card-title">Cliente: {{ appointment.name }}</h5>
-                        <p class="text-muted mb-0">Contato: {{ appointment.phone }}</p>
-                        <p class="text-muted mb-0">Agendado para às {{ appointment.time }}</p>
+                        <h5 class="card-title"><strong>Nome:</strong> {{ appointment.name }}</h5>
+                        <p class="text-muted mb-0"><strong>Contato:</strong> {{ appointment.phone }}</p>
+                        <p class="text-muted mb-0"><strong>Dia:</strong> {{ appointment.day }}</p>
+                        <p class="text-muted mb-0"><strong>Horário:</strong> {{ appointment.time }}</p>
                     </div>
                     <button class="btn btn-sm btn-icon" @click="toggleDropdown(appointment.id)">
                         <span class="material-symbols-rounded">more_vert</span>
@@ -98,7 +97,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig.js';
 import { useAlert } from '@/stores/alert';
 import NothingHere from '@/components/NothingHere.vue';
@@ -117,13 +116,18 @@ const filteredAppointments = computed(() => {
     }
     return appointments.value.filter(appointment => appointment.status === filterStatus.value);
 });
-const loadAppointments = async () => {
+
+const loadAppointments = () => {
     try {
-        const querySnapshot = await getDocs(collection(db, 'bookings'));
-        appointments.value = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
+        const q = query(collection(db, 'bookings'));
+
+        // Listener em tempo real
+        onSnapshot(q, (querySnapshot) => {
+            appointments.value = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+        });
     } catch (error) {
         alert.show('Erro ao carregar agendamentos.', 500);
         console.error('Erro ao carregar agendamentos:', error);
@@ -243,7 +247,6 @@ const clearAppointments = async (period) => {
     }
 };
 
-
 onMounted(loadAppointments);
 </script>
 
@@ -325,7 +328,6 @@ onMounted(loadAppointments);
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity .8s;
-
 }
 
 .fade-enter,

@@ -1,6 +1,6 @@
 <script setup>
 import { useAlert } from '@/stores/alert';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const alert = useAlert()
 
@@ -20,21 +20,35 @@ function getTitle() {
     return ['info', 'Mensagem', 'bg-info']
 }
 
-const timeout = ref()
-
-function btnClose() {
-    clearTimeout(timeout.value)
-    alert.hide()
-}
-
 const information = computed(() => getTitle())
 
-onMounted(() => {
-    timeout.value = setTimeout(() => {
-        alert.hide()
-    }, 10 * 1000)
+const time = 7
+const momentum = time * 1000
+const delay = 300
+
+const pos = ref(0)
+const timeout = ref()
+const interval = ref()
+
+watch(() => alert.visible, (newval) => {
+    if (newval) {
+        interval.value = setInterval(() => {
+            pos.value += 1
+        }, (momentum - delay) / 100)
+        timeout.value = setTimeout(() => {
+            alert.hide()
+            pos.value = 0
+            clearInterval(interval.value)
+        }, momentum)
+    }
 })
 
+function btnClose() {
+    alert.hide()
+    pos.value = 0
+    clearTimeout(timeout.value)
+    clearInterval(interval.value)
+}
 </script>
 
 <template>
@@ -52,13 +66,16 @@ onMounted(() => {
                 <div class="px-3 py-2">
                     {{ alert.message }}
                 </div>
-                <span class="progress" :class="information[2]"></span>
+                <span class="progress" style="height: 2px;">
+                    <span :class="information[2]"
+                        :style="{ 'width': `${pos}%`, 'transition': `all ${delay}ms` }"></span>
+                </span>
             </div>
         </div>
     </div>
 </template>
 
-<style>
+<style scoped>
 #alert {
     opacity: 0;
     visibility: hidden;
@@ -68,22 +85,5 @@ onMounted(() => {
 #alert.active {
     opacity: 1;
     visibility: visible;
-}
-
-.progress {
-    width: 0%;
-    height: 2px !important;
-    border-radius: 50px;
-    animation: load 10s cubic-bezier(1, 1, 1, 1);
-}
-
-@keyframes load {
-    from {
-        width: 0%;
-    }
-
-    to {
-        width: 100%;
-    }
 }
 </style>

@@ -1,22 +1,32 @@
 <template>
-    <div>
-        <form v-if="selectedTime" @submit.prevent="submitForm">
-            <div class="mb-3">
-                <label for="name" class="form-label">Nome</label>
-                <input v-model="formData.name" type="text" class="form-control" id="name" required />
-            </div>
-            <div class="mb-3">
-                <label for="phone" class="form-label">Telefone</label>
-                <input v-model="formData.phone" type="text" class="form-control" id="phone" required />
-            </div>
-            <div class="mb-3">
-                <label for="selectedTime" class="form-label">Horário Selecionado</label>
-                <input v-model="selectedTime" type="text" class="form-control" id="selectedTime" disabled />
-            </div>
-            <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
-        </form>
-        <p v-else>Selecione um horário para agendar.</p>
+  <div class="card mb-5">
+    <div class="card-body">
+      <form v-if="localSelectedTime" @submit.prevent="submitForm">
+        <div class="mb-4">
+          <label for="name" class="form-label">Nome</label>
+          <input v-model="formData.name" type="text" class="form-control" id="name" required />
+        </div>
+        <div class="mb-3">
+          <label for="phone" class="form-label">Telefone</label>
+          <input v-model="formData.phone" type="text" class="form-control" id="phone" required
+            v-mask="['(##) ####-####', '(##) #####-####']" />
+        </div>
+        <div class="mb-3">
+          <label for="selectedDay" class="form-label">Dia Selecionado</label>
+          <input v-model="localSelectedDay" type="text" class="form-control" id="selectedDay" disabled />
+        </div>
+        <div class="mb-3">
+          <label for="selectedTime" class="form-label">Horário Selecionado</label>
+          <input v-model="localSelectedTime" type="text" class="form-control" id="selectedTime" disabled />
+        </div>
+        <button type="submit" class="btn btn-primary d-flex align-items-center gap-1 mt-4">Confirmar Agendamento <span
+            class="material-symbols-rounded fs-5">
+            check
+          </span></button>
+      </form>
+      <p v-else>Selecione um horário para agendar.</p>
     </div>
+  </div>
 </template>
 
 <script setup>
@@ -25,93 +35,92 @@ import { auth, db } from '@/firebaseConfig';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAlert } from '@/stores/alert';
 
-const props = defineProps(['selectedTime']);
+const props = defineProps(['selectedDay', 'selectedTime']);
 const alert = useAlert();
 
 const formData = ref({
-    name: '',
-    phone: ''
+  name: '',
+  phone: ''
 });
 
-const selectedTime = ref(props.selectedTime);
+// Variáveis locais
+const localSelectedDay = ref(props.selectedDay);
+const localSelectedTime = ref(props.selectedTime);
+
+// Watchers para atualizar as variáveis locais
+watch(() => props.selectedDay, (newValue) => {
+  localSelectedDay.value = newValue;
+  console.log('Dia atualizado no formulário:', newValue); // Debugging
+});
+
+watch(() => props.selectedTime, (newValue) => {
+  localSelectedTime.value = newValue;
+  console.log('Horário atualizado no formulário:', newValue); // Debugging
+});
 
 const fetchUserData = async (userId) => {
-    try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            formData.value.name = userData.name || '';
-            formData.value.phone = userData.phone || '';
-        } else {
-            console.log('Usuário não encontrado no Firestore.');
-        }
-    } catch (error) {
-        alert.show('Erro ao buscar dados do usuário.', 500);
-        console.error('Erro ao buscar dados do usuário:', error);
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      formData.value.name = userData.name || '';
+      formData.value.phone = userData.phone || '';
     }
+  } catch (error) {
+    alert.show('Erro ao buscar dados do usuário.', 500);
+  }
 };
 
 const submitForm = async () => {
-    if (selectedTime.value) {
-        try {
-            const user = auth.currentUser;
-            if (user) {
-                await setDoc(doc(db, 'bookings', user.uid), {
-                    ...formData.value,
-                    time: selectedTime.value,
-                    userId: user.uid
-                });
+  if (localSelectedTime.value) {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await setDoc(doc(db, 'bookings', user.uid), {
+          ...formData.value,
+          day: localSelectedDay.value,
+          time: localSelectedTime.value,
+          userId: user.uid
+        });
 
-                const docRef = doc(db, 'barbershop', 'dailySchedule');
-                const docSnapshot = await getDoc(docRef);
-                const schedule = docSnapshot.data().schedule || [];
-                const updatedTimes = schedule.flatMap(day => [day.startTime, day.endTime]).filter(time => time !== selectedTime.value);
+        const docRef = doc(db, 'barbershop', 'dailySchedule');
+        const docSnapshot = await getDoc(docRef);
+        const schedule = docSnapshot.data().schedule || [];
 
-                await updateDoc(docRef, {
-                    availableTimes: updatedTimes
-                });
+        const updatedSchedule = schedule.map(day => {
+          if (day.day === localSelectedDay.value && day.availableTimes[localSelectedTime.value]) {
+            day.availableTimes[localSelectedTime.value].isBooked = true;
+          }
+          return day;
+        });
 
-                alert.show('Agendamento confirmado!', 200);
+        await updateDoc(docRef, { schedule: updatedSchedule });
 
-                formData.value = {
-                    name: '',
-                    phone: ''
-                };
-                selectedTime.value = null;
-            } else {
-                alert.show('Usuário não autenticado.', 300);
-            }
-        } catch (error) {
-            alert.show('Erro ao confirmar agendamento.', 500);
-        }
-    } else {
-        alert.show('Por favor, selecione um horário.', 300);
+        alert.show('Agendamento confirmado!', 200);
+        formData.value = { name: '', phone: '' };
+        localSelectedTime.value = null;
+      } else {
+        alert.show('Usuário não autenticado.', 300);
+      }
+    } catch (error) {
+      alert.show('Erro ao confirmar agendamento.', 500);
     }
+  } else {
+    alert.show('Por favor, selecione um horário.', 300);
+  }
 };
 
-watch(() => props.selectedTime, (newValue) => {
-    selectedTime.value = newValue;
-});
-
 onMounted(() => {
-    const user = auth.currentUser;
-    if (user) {
-        fetchUserData(user.uid);
-    } else {
-        console.log('Usuário não autenticado.');
-    }
-});
-
-watch(() => auth.currentUser, (newUser) => {
-    if (newUser) {
-        fetchUserData(newUser.uid);
-    }
+  const user = auth.currentUser;
+  if (user) {
+    fetchUserData(user.uid);
+  }
 });
 </script>
 
 <style scoped>
 form {
-    margin-top: 20px;
+  margin-top: 20px;
 }
 </style>

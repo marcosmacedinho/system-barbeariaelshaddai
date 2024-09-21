@@ -22,7 +22,6 @@ userStore.initAuthListener(router);
 <template>
   <div v-if="userStore.loading" class="d-flex justify-content-center align-items-center min-vh-100">
     <div class="spinner-grow" role="status">
-      <span class="visually-hidden">Loading...</span>
     </div>
   </div>
   <div v-else>

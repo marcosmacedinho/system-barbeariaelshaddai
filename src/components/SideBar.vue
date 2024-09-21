@@ -36,9 +36,7 @@
 }
 
 .nav-link:hover {
-    background-color: #e9ecef;
     color: #007bff;
-    border-radius: 10%;
 }
 
 .material-symbols-rounded {

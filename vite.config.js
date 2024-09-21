@@ -1,10 +1,10 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+
   css: {
     preprocessorOptions: {
       scss: {
@@ -21,6 +21,6 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: true // Adicione esta linha para gerar mapas de código
+    sourcemap: true
   }
 })

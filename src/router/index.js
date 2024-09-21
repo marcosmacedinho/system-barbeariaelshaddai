@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DefaultLayout from '@/layouts/DefaultLayout.vue' // Layout com cabeçalho
-import NoHeaderLayout from '@/layouts/NoHeaderLayout.vue' // Layout sem cabeçalho
-import BarberLayout from '@/layouts/BarberLayout.vue' // Layout para o barbeiro
-import { auth } from '@/firebaseConfig' // Importar configuração do Firebase
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import NoHeaderLayout from '@/layouts/NoHeaderLayout.vue'
+import BarberLayout from '@/layouts/BarberLayout.vue'
+import { auth } from '@/firebaseConfig'
 
 const routes = [
   {
@@ -47,7 +47,8 @@ const routes = [
       {
         path: '',
         name: 'Login',
-        component: () => import('@/views/LoginView.vue')
+        component: () => import('@/views/LoginView.vue'),
+        meta: { requiresGuest: true }
       }
     ]
   },
@@ -58,14 +59,39 @@ const routes = [
       {
         path: '',
         name: 'Register',
-        component: () => import('@/views/RegisterView.vue')
+        component: () => import('@/views/RegisterView.vue'),
+        meta: { requiresGuest: true }
+      }
+    ]
+  },
+  {
+    path: '/forgot-password',
+    component: NoHeaderLayout,
+    children: [
+      {
+        path: '',
+        name: 'ForgotPassword',
+        component: () => import('@/views/ForgotPassword.vue'),
+        meta: { requiresGuest: true }
+      }
+    ]
+  },
+  {
+    path: '/not-authorized',
+    component: NoHeaderLayout,
+    children: [
+      {
+        path: '',
+        name: 'NotAuthorized',
+        component: () => import('@/views/NotAuthorized.vue'),
+        meta: { requiresGuest: true }
       }
     ]
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/components/NotFound.vue')
+    component: () => import('@/views/NotFound.vue')
   }
 ]
 
@@ -76,14 +102,15 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const user = auth.currentUser
+
   if (to.matched.some((record) => record.meta.requiresAuth) && !user) {
     next('/login')
+  } else if (to.matched.some((record) => record.meta.requiresGuest) && user) {
+    next('/')
+  } else if (to.meta.role && user && !user.roles.includes(to.meta.role)) {
+    next('/not-authorized') // Redireciona para uma página de "não autorizado"
   } else {
-    if (user && (to.name === 'Login' || to.name === 'Register')) {
-      next('/')
-    } else {
-      next()
-    }
+    next()
   }
 })
 

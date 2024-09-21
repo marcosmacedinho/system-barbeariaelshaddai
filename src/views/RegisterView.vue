@@ -1,11 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import IMask from 'imask';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAlert } from '@/stores/alert';
-import { auth, db } from '@/firebaseConfig'; // Importe as instâncias do Firebase
-import { createUserWithEmailAndPassword } from 'firebase/auth'; // Importar a função para criar usuário
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'; // Importar funções do Firestore
+import { auth, db } from '@/firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const router = useRouter();
 const data = ref({
@@ -15,8 +14,6 @@ const data = ref({
     confirmPassword: '',
     phone: ''
 });
-
-const phoneInput = ref(null);
 
 const register = async () => {
     if (data.value.password === data.value.confirmPassword) {
@@ -28,27 +25,20 @@ const register = async () => {
                 name: data.value.name,
                 email: data.value.email,
                 phone: data.value.phone,
-                createdAt: serverTimestamp()
+                createdAt: new Date()
             });
 
             useAlert().show("Cadastro realizado com sucesso", 200);
-            router.replace('/login');
+            router.replace('/appointments');
         } catch (error) {
-            useAlert().show("Deu algum erro no seu registro! Caso persista, entre em contato com o administrador", 300);
+            useAlert().show("Erro no registro, tente novamente! Caso persista, contate o administrador", 300);
         }
     } else {
         useAlert().show("As senhas não coincidem.", 300);
     }
 };
-
-onMounted(() => {
-    if (phoneInput.value) {
-        IMask(phoneInput.value, {
-            mask: '(00) 00000-0000'
-        });
-    }
-});
 </script>
+
 <template>
     <div class="container register">
         <div class="flex-grow-1">
@@ -65,42 +55,34 @@ onMounted(() => {
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="email">Email</label>
-                    <input class="form-control" id="email" v-model="data.email" type="email" placeholder="Email"
-                        required />
+                    <input class="form-control" id="email" v-model="data.email" type="email" placeholder="Email" required />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="phone">Número de Telefone</label>
                     <input class="form-control" id="phone" v-model="data.phone" type="text"
-                        placeholder="Número de Telefone" required ref="phoneInput" />
+                        placeholder="Número de Telefone" v-mask="['(##) ####-####', '(##) #####-####']"  />
                 </div>
                 <div class="mb-4">
-                    <label class="form-label" for="password">
-                        <span>Senha</span>
-                    </label>
+                    <label class="form-label" for="password">Senha</label>
                     <input v-model="data.password" type="password" id="password" placeholder="Senha"
                         class="form-control" required minlength="4" />
                 </div>
                 <div class="mb-4">
-                    <label class="form-label" for="confirmPassword">
-                        <span>Confirme a Senha</span>
-                    </label>
+                    <label class="form-label" for="confirmPassword">Confirme a Senha</label>
                     <input v-model="data.confirmPassword" type="password" id="confirmPassword"
                         placeholder="Confirmar Senha" class="form-control" required minlength="4" />
                 </div>
-                <button type="submit"
-                    class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
+                <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
                     Registrar
                     <span class="material-symbols-rounded fs-5">person_add</span>
                 </button>
                 <div class="mt-3 text-center">
-                    <p class="fs-6 text-muted">Já tem uma conta? <a href="/login" class="text-primary">Faça login</a>
-                    </p>
+                    <p class="fs-6 text-muted">Já tem uma conta? <a href="/login" class="text-primary">Faça login</a></p>
                 </div>
             </form>
         </div>
     </div>
 </template>
-
 
 <style scoped>
 .register {
