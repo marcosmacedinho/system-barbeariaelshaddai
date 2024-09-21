@@ -19,7 +19,7 @@ import AlertToast from './components/AlertToast.vue';
 import ConnectionStatus from './components/ConnectionStatus.vue';
 import { provide } from 'vue';
 import CopyCamp from './components/CopyCamp.vue';
-import FloatingButton from '@/components/FloatingButton.vue'; // Importe o botão flutuante
+import FloatingButton from '@/components/ConditionalFloatingButton.vue'; // Importe o botão flutuante
 
 const sysapp = {
   name: 'Barbearia El Shaddai',

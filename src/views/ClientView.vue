@@ -26,9 +26,12 @@
           <span class="text-success">{{ appointment.status }}</span>
         </li>
       </ul>
-      <div v-if="appointments.length === 0" class="alert alert-info text-center mt-3">
+      <div v-if="appointments.length === 0"
+        class="alert alert-info text-center mt-3 d-flex align-items-center gap-1 justify-content-center">
+        <span class="material-symbols-rounded">calendar_today</span>
         Você ainda não tem agendamentos.
       </div>
+
     </div>
   </div>
 </template>

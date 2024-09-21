@@ -1,19 +1,24 @@
 <template>
-    <button v-if="isAuthenticated" class="floating-button" @click="goToComments">
+    <button v-if="showButton" class="floating-button" @click="goToComments">
         <span class="material-symbols-rounded fs-4">comment</span>
     </button>
 </template>
 
-
 <script setup>
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
 import { computed } from 'vue';
 
 const router = useRouter();
+const route = useRoute(); // Para acessar a rota atual
 const userStore = useUserStore();
 
-const isAuthenticated = computed(() => userStore.isAuthenticated); // Usa a propriedade isAuthenticated do userStore
+const isAuthenticated = computed(() => userStore.isAuthenticated);
+
+// Computed para verificar se a rota atual é FeedbackView
+const showButton = computed(() => {
+    return isAuthenticated.value && route.name !== 'Feedback'; // Substitua 'Feedback' pelo nome exato da sua rota
+});
 
 const goToComments = () => {
     router.replace({ name: 'Feedback' });
@@ -43,7 +48,7 @@ const goToComments = () => {
     background-color: $primary;
 }
 
-@media (max-width:992px) {
+@media (max-width: 992px) {
     .floating-button {
         left: 20px;
     }
