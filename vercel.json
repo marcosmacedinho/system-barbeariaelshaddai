@@ -1,16 +1,8 @@
 {
-    "version": 2,
-    "name": "Barbearia-El-Shaddai",
-    "builds": [
+    "rewrites": [
         {
-            "src": "src/main.js",
-            "use": "@vercel/node"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "/index.html"
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }
