@@ -88,11 +88,14 @@ const formatDayWithDate = (day, date) => {
   return `${day}, ${parsedDate.toLocaleDateString('pt-BR', options)}`;
 };
 
+
+
 const submitForm = async () => {
   if (localSelectedTime.value) {
     try {
-      const userId = userStore.user?.id; 
+      const userId = userStore.user?.id;
       if (userId) {
+        // Armazena os dados do agendamento no Firestore
         await setDoc(doc(db, 'bookings', userId), {
           ...formData.value,
           day: localSelectedDay.value.day,
@@ -101,12 +104,13 @@ const submitForm = async () => {
           userId: userId
         });
 
+        // Atualiza os horários no Firestore somente após a confirmação
         const docRef = doc(db, 'barbershop', 'dailySchedule');
         const docSnapshot = await getDoc(docRef);
         const schedule = docSnapshot.data().schedule || [];
         const updatedSchedule = schedule.map(day => {
           if (day.day === localSelectedDay.value.day && day.availableTimes[localSelectedTime.value]) {
-            day.availableTimes[localSelectedTime.value].isBooked = true;
+            day.availableTimes[localSelectedTime.value].isBooked = true; // Marca como ocupado
           }
           return day;
         });
@@ -115,10 +119,8 @@ const submitForm = async () => {
         alert.show('Agendamento confirmado!', 200);
         formData.value = { name: '', phone: '' };
         localSelectedTime.value = null;
-        
-        // Emitir um evento para limpar a seleção do dia também
-        emit('clearSelection');
 
+        emit('clearSelection');
       } else {
         alert.show('Usuário não autenticado.', 300);
       }
@@ -129,6 +131,7 @@ const submitForm = async () => {
     alert.show('Por favor, selecione um horário.', 300);
   }
 };
+
 </script>
 
 <style scoped>

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="mb-4">Definir Horários Diários</h3>
+    <h3 class="header mb-4">Definir Horários Diários</h3>
     <form @submit.prevent="saveDailySchedule">
       <div v-for="(schedule, index) in dailySchedule" :key="index" class="mb-3">
         <label :for="'day-' + index">{{ formatDayWithDate(schedule.day) }}</label>
@@ -16,14 +16,13 @@
           <select v-model="schedule.endTime" :id="'end-' + index" class="form-select" :disabled="!schedule.startTime"
             @change="updateAvailableTimes(index)">
             <option value="" disabled>Fim</option>
-            <option v-for="time in validEndTimeOptions(schedule.startTime)" :key="time" :value="time">{{ time }}
-            </option>
+            <option v-for="time in validEndTimeOptions(schedule.startTime)" :key="time" :value="time">{{ time }}</option>
           </select>
         </div>
 
         <!-- Exibir horários disponíveis -->
         <div v-if="availableTimes[index]?.length">
-          <h5>Horários Disponíveis:</h5>
+          <h5>Horários Disponíveis para os Clientes:</h5>
           <ul>
             <li v-for="time in availableTimes[index]" :key="time">{{ time }}</li>
           </ul>
@@ -41,44 +40,37 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { ref, computed, onMounted } from 'vue';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig.js';
 import { useAlert } from '@/stores/alert';
+import { format, addMinutes, isBefore } from 'date-fns'; // Importando funções do date-fns
 
-// Função para gerar horários entre início e fim com intervalos de 40 minutos
 const generateTimes = (start, end) => {
   const times = [];
   const startDate = new Date(`1970-01-01T${start}:00`);
   const endDate = new Date(`1970-01-01T${end}:00`);
-  const interval = 40 * 60 * 1000; // 40 minutos em milissegundos
+  const interval = 40; // 40 minutos
 
-  let current = new Date(startDate);
-
-  while (current < endDate) {
-    const hours = current.getHours().toString().padStart(2, '0');
-    const minutes = current.getMinutes().toString().padStart(2, '0');
-    times.push(`${hours}:${minutes}`);
-    current = new Date(current.getTime() + interval);
+  let current = startDate;
+  while (isBefore(current, endDate)) {
+    times.push(format(current, 'HH:mm')); // Formata a hora
+    current = addMinutes(current, interval);
   }
 
   return times;
 };
 
-// Função para gerar todas as opções de horários entre 05:00 e 23:00
 const generateAllTimes = () => {
   const times = [];
   const startDate = new Date('1970-01-01T05:00:00');
   const endDate = new Date('1970-01-01T23:00:00');
-  const interval = 40 * 60 * 1000;
+  const interval = 40;
 
-  let current = new Date(startDate);
-
-  while (current < endDate) {
-    const hours = current.getHours().toString().padStart(2, '0');
-    const minutes = current.getMinutes().toString().padStart(2, '0');
-    times.push(`${hours}:${minutes}`);
-    current = new Date(current.getTime() + interval);
+  let current = startDate;
+  while (isBefore(current, endDate)) {
+    times.push(format(current, 'HH:mm'));
+    current = addMinutes(current, interval);
   }
 
   return times;
@@ -100,7 +92,6 @@ const getDayDate = (day) => {
   const currentDayIndex = currentDate.getDay();
   let daysUntilNext = (dayIndex + 7 - currentDayIndex) % 7;
 
-  // Se for o mesmo dia, avance para a próxima ocorrência
   if (daysUntilNext === 0) {
     daysUntilNext = 7; // Pula para o próximo
   }
@@ -108,11 +99,9 @@ const getDayDate = (day) => {
   const dayDate = new Date(currentDate);
   dayDate.setDate(currentDate.getDate() + daysUntilNext);
 
-  return dayDate.toISOString().split('T')[0]; // Retorna a data no formato YYYY-MM-DD
+  return format(dayDate, 'yyyy-MM-dd'); // Retorna a data no formato YYYY-MM-DD
 };
 
-
-// Função para formatar o dia com a data correspondente
 const formatDayWithDate = (day) => {
   const currentDate = new Date();
   const daysOfWeek = {
@@ -139,13 +128,13 @@ const formatDayWithDate = (day) => {
 const timeOptions = ref(generateAllTimes());
 const availableTimes = ref([]);
 const dailySchedule = ref([
-  { day: 'Domingo', startTime: '', endTime: '' },
   { day: 'Segunda-feira', startTime: '', endTime: '' },
   { day: 'Terça-feira', startTime: '', endTime: '' },
   { day: 'Quarta-feira', startTime: '', endTime: '' },
   { day: 'Quinta-feira', startTime: '', endTime: '' },
   { day: 'Sexta-feira', startTime: '', endTime: '' },
   { day: 'Sábado', startTime: '', endTime: '' },
+  { day: 'Domingo', startTime: '', endTime: '' },
 ]);
 
 const isLoading = ref(false);
@@ -201,33 +190,23 @@ const saveDailySchedule = async () => {
   }
 };
 
-// Escuta em tempo real para mudanças no Firestore
-onSnapshot(doc(db, 'barbershop', 'dailySchedule'), (docSnapshot) => {
-  if (docSnapshot.exists()) {
-    const scheduleData = docSnapshot.data().schedule;
-    dailySchedule.value = scheduleData.map((day) => ({
-      day: day.day,
-      startTime: day.startTime,
-      endTime: day.endTime,
-    }));
-  }
-});
+const updateWeeklySchedule = () => {
+  const currentDate = new Date();
+  const currentDayIndex = currentDate.getDay();
 
-watch(dailySchedule, (newSchedule) => {
-  newSchedule.forEach((day, index) => {
-    if (day.startTime && day.endTime) {
-      availableTimes.value[index] = generateTimes(day.startTime, day.endTime);
-    }
+  // Atualiza dailySchedule para a nova semana
+  dailySchedule.value = dailySchedule.value.map((day, index) => {
+    const newDay = new Date(currentDate);
+    newDay.setDate(currentDate.getDate() + (index - currentDayIndex)); // Atualiza a data
+    return {
+      ...day,
+      dayDate: format(newDay, 'yyyy-MM-dd'), // Atualiza a data no formato YYYY-MM-DD
+      availableTimes: []
+    };
   });
-}, { deep: true });
+};
 
+onMounted(() => {
+  updateWeeklySchedule();
+});
 </script>
-
-<style scoped>
-.form-select {
-  width: 100%;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 20px;
-}
-</style>

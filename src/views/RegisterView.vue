@@ -55,12 +55,13 @@ const register = async () => {
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="email">Email</label>
-                    <input class="form-control" id="email" v-model="data.email" type="email" placeholder="Email" required />
+                    <input class="form-control" id="email" v-model="data.email" type="email" placeholder="Email"
+                        required />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="phone">Número de Telefone</label>
                     <input class="form-control" id="phone" v-model="data.phone" type="text"
-                        placeholder="Número de Telefone" v-mask="['(##) ####-####', '(##) #####-####']"  />
+                        placeholder="Número de Telefone" v-mask="['(##) ####-####', '(##) #####-####']" />
                 </div>
                 <div class="mb-4">
                     <label class="form-label" for="password">Senha</label>
@@ -72,12 +73,14 @@ const register = async () => {
                     <input v-model="data.confirmPassword" type="password" id="confirmPassword"
                         placeholder="Confirmar Senha" class="form-control" required minlength="4" />
                 </div>
-                <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
+                <button type="submit"
+                    class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
                     Registrar
                     <span class="material-symbols-rounded fs-5">person_add</span>
                 </button>
                 <div class="mt-3 text-center">
-                    <p class="fs-6 text-muted">Já tem uma conta? <a href="/login" class="text-primary">Faça login</a></p>
+                    <p class="fs-6 text-muted">Já tem uma conta? <a href="/login" class="text-primary">Faça login</a>
+                    </p>
                 </div>
             </form>
         </div>

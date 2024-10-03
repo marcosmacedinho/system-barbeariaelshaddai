@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <h3 class="mb-4">Clientes Cadastrados</h3>
+    <div class="">
+        <h3 class="header mb-4">Clientes Cadastrados</h3>
 
         <div class="d-flex justify-content-between mb-2 flex-column gap-md-2 ">
             <input type="text" v-model="searchQuery" class="form-control mb-2 mb-md-0 w-25"
@@ -268,6 +268,12 @@ onMounted(() => {
 
 
 <style lang="scss" scoped>
+.header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 0.5rem;
+}
+
 .avatar-img {
     width: 50px;
     height: 50px;
