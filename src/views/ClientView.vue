@@ -4,13 +4,14 @@
 
     <div class="availability-section mb-5">
       <h2 class="mb-3">Escolha um dia e horário</h2>
-      <AvailableTime @select="selectTime" @selectDay="selectDay" :reset="resetSelection" />
+      <AvailableTime @select="selectTime" @selectDay="selectDay" @selectService="selectService"
+        :reset="resetSelection" />
     </div>
 
-    <div v-if="selectedTime && selectedDay" class="booking-form-section">
+    <div v-if="selectedTime && selectedDay && selectedService" class="booking-form-section">
       <h2 class="text primary mb-3">Complete seu agendamento</h2>
-      <BookingForm :selectedDay="selectedDay" :selectedTime="selectedTime" @submit="bookAppointment"
-        @close="handleClose" />
+      <BookingForm :selectedDay="selectedDay" :selected-service="selectedService" :selectedTime="selectedTime"
+        @submit="bookAppointment" @close="handleClose" />
     </div>
 
     <div v-else class="alert alert-info text-center d-flex align-items-center justify-content-center gap-1">
@@ -47,6 +48,7 @@ import { useUserStore } from '@/stores/userStore'; // Importa o userStore
 
 const selectedTime = ref(null);
 const selectedDay = ref(null);
+const selectedService = ref(null);
 const resetSelection = ref(false);
 const appointments = ref([]);
 const userStore = useUserStore(); // Inicializa o userStore
@@ -59,10 +61,16 @@ const selectTime = (time) => {
   selectedTime.value = time;
 };
 
+const selectService = (service) => {
+  selectedService.value = service;
+};
+
+
 const handleClose = (payload) => {
   if (payload.clearSelection) {
     selectedDay.value = null;
     selectedTime.value = null;
+    selectedService.value = null;
     resetSelection.value = true;
   }
 };

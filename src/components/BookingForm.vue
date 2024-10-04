@@ -34,8 +34,9 @@ import { db } from '@/firebaseConfig';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAlert } from '@/stores/alert';
 import { useUserStore } from '@/stores/userStore';
+import dayjs from 'dayjs';
 
-const props = defineProps(['selectedDay', 'selectedTime']);
+const props = defineProps(['selectedDay', 'selectedTime', 'selectedService']);
 const emit = defineEmits(['clearSelection']);
 const alert = useAlert();
 const userStore = useUserStore();
@@ -47,6 +48,7 @@ const formData = ref({
 
 const localSelectedDay = ref(props.selectedDay);
 const localSelectedTime = ref(props.selectedTime?.time || null);
+const localSelectedService = ref(props.selectedService || null);
 
 watch(() => props.selectedDay, (newValue) => {
   localSelectedDay.value = newValue;
@@ -54,6 +56,10 @@ watch(() => props.selectedDay, (newValue) => {
 
 watch(() => props.selectedTime, (newValue) => {
   localSelectedTime.value = newValue?.time || null;
+});
+
+watch(() => props.selectedService, (newValue) => {
+  localSelectedService.value = newValue || null;
 });
 
 const fetchUserData = async () => {
@@ -88,8 +94,6 @@ const formatDayWithDate = (day, date) => {
   return `${day}, ${parsedDate.toLocaleDateString('pt-BR', options)}`;
 };
 
-
-
 const submitForm = async () => {
   if (localSelectedTime.value) {
     try {
@@ -101,6 +105,7 @@ const submitForm = async () => {
           day: localSelectedDay.value.day,
           dayDate: localSelectedDay.value.dayDate,
           time: localSelectedTime.value,
+          service: localSelectedService.value.id,
           userId: userId
         });
 
@@ -108,19 +113,55 @@ const submitForm = async () => {
         const docRef = doc(db, 'barbershop', 'dailySchedule');
         const docSnapshot = await getDoc(docRef);
         const schedule = docSnapshot.data().schedule || [];
-        const updatedSchedule = schedule.map(day => {
-          if (day.day === localSelectedDay.value.day && day.availableTimes[localSelectedTime.value]) {
-            day.availableTimes[localSelectedTime.value].isBooked = true; // Marca como ocupado
+
+        const dayIndex = schedule.findIndex(o => {
+          return o.day === localSelectedDay.value.day
+            && o.availableTimes[localSelectedTime.value]
+        })
+
+        if (dayIndex == -1) {
+          alert.show('Agendamento não encontrado.', 500);
+          return
+        }
+
+        const day = schedule[dayIndex]
+
+        if (localSelectedService.value.duration < 40) {
+          const newDate = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
+            .add(localSelectedService.value.duration, 'minute').format('HH:mm')
+
+          day.availableTimes[newDate] = { isBooked: false }
+          day.availableTimes[localSelectedTime.value].isBooked = true
+
+        } else if (localSelectedService.value.duration > 40) {
+          const places = Math.ceil(localSelectedService.value.duration / 40)
+          console.log(localSelectedTime.value)
+
+          for (let i = localSelectedTime.value; i < localSelectedTime.value + places - 1; i++) {
+            if (i >= day.availableTimes.length && day.availableTimes[i].isBooked) {
+              alert.show('Os horários a frente já estão marcados.', 500);
+              return
+            }
           }
-          return day;
-        });
-        await updateDoc(docRef, { schedule: updatedSchedule });
 
-        alert.show('Agendamento confirmado!', 200);
-        formData.value = { name: '', phone: '' };
-        localSelectedTime.value = null;
+          for (let i = localSelectedTime.value; i < localSelectedTime.value + places - 1; i++) {
+            day.availableTimes[i].isBooked = true
+          }
+        } else {
+          day.availableTimes[localSelectedTime.value].isBooked = true
+        }
 
-        emit('clearSelection');
+        schedule[dayIndex] = day
+
+        console.log(schedule[dayIndex])
+
+        // await updateDoc(docRef, { schedule: schedule });
+
+        // alert.show('Agendamento confirmado!', 200);
+        // formData.value = { name: '', phone: '' };
+        // localSelectedTime.value = null;
+
+        // emit('clearSelection');
       } else {
         alert.show('Usuário não autenticado.', 300);
       }

@@ -16,6 +16,7 @@
     "@vueuse/core": "^11.1.0",
     "bootstrap": "^5.3.3",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "firebase": "^10.13.1",
     "imask": "^7.6.1",

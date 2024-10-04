@@ -1,6 +1,14 @@
 <template>
   <div class="card">
     <div class="card-body">
+      <label for="serviceSelect" class="form-label mt-3">Selecione um serviço:</label>
+      <select id="serviceSelect" class="form-select" v-model="selectedService" @change="selectService">
+        <option value="" disabled>Escolha um serviço</option>
+        <option v-for="item in services" :key="item.id" :value="item.id">
+          {{ item.title }} ({{ item.duration }} min)</option>
+      </select>
+
+
       <label for="daySelect" class="form-label">Selecione um dia:</label>
       <select id="daySelect" class="form-select" v-model="selectedDay" @change="handleDayChange">
         <option value="" disabled>Escolha um dia</option>
@@ -15,13 +23,6 @@
         <option v-for="time in availableTimes" :key="time" :value="time">{{ time }}</option>
       </select>
 
-      <label for="serviceSelect" class="form-label mt-3">Selecione um serviço:</label>
-      <select id="serviceSelect" class="form-select" v-model="selectedService" @change="updateServiceDuration">
-        <option value="" disabled>Escolha um serviço</option>
-        <option v-for="(duration, service) in services" :key="service" :value="service">{{ service }} ({{ duration }}
-          min)</option>
-      </select>
-
       <div v-if="selectedService">
         <p>Tempo estimado: {{ serviceDuration }} min</p>
       </div>
@@ -32,16 +33,17 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { db, auth } from '@/firebaseConfig';
-import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, updateDoc, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { useAlert } from '@/stores/alert';
 
 const props = defineProps({
   reset: Boolean
 });
 
-const emit = defineEmits(['select', 'selectDay', 'populateUserData']);
+const emit = defineEmits(['select', 'selectDay', 'populateUserData', 'selectService']);
 const daysWithDate = ref([]);
 const availableTimes = ref([]);
+const services = ref([])
 const selectedDay = ref(null);
 const selectedTime = ref(null);
 const selectedService = ref(null);
@@ -50,13 +52,23 @@ const alert = useAlert();
 let unsubscribe = null;
 
 // Duração dos serviços em minutos
-const services = {
-  'Corte': 40,
-  'Barba': 20,
-  'Sobrancelha': 10,
-  'Luzes': 120,
-  'Alisamento': 120,
+// const services = {
+//   'Corte': 40,
+//   'Barba': 20,
+//   'Sobrancelha': 10,
+//   'Luzes': 120,
+//   'Alisamento': 120,
+// };
+
+
+const fetchServices = async () => {
+  const q = query(collection(db, 'services'), orderBy("duration", "asc"));
+  const querySnapshot = await getDocs(q);
+  querySnapshot.forEach((doc) => {
+    services.value.push({ id: doc.id, ...doc.data() })
+  })
 };
+
 
 // Função para formatar data
 const formatDayWithDate = (day, date) => {
@@ -97,61 +109,20 @@ const fetchAvailableTimes = async () => {
   });
 };
 
-const updateServiceDuration = () => {
-  serviceDuration.value = services[selectedService.value] || 0;
+// {}
+
+const selectService = () => {
+  const service = services.value
+    .find(o => o.id === selectedService.value);
+
+  if (service) {
+    emit('selectService', service);
+    serviceDuration.value = service?.duration || 0
+  }
 };
 
 const selectTime = async () => {
-  const user = auth.currentUser;
-
-  // Atualizar os horários ocupados no Firestore
-  if (user) {
-    await bookTimeSlots(selectedTime.value, serviceDuration.value);
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      emit('populateUserData', userDoc.data());
-    }
-  }
-
   emit('select', { day: selectedDay.value.day, time: selectedTime.value, service: selectedService.value });
-};
-
-// Função para reservar horários
-const bookTimeSlots = async (startTime, duration) => {
-  const totalMinutes = duration;
-  const intervals = totalMinutes / 40; // considerando intervalos de 40 minutos
-
-  const docRef = doc(db, 'barbershop', 'dailySchedule');
-  const docSnapshot = await getDoc(docRef);
-  if (!docSnapshot.exists()) {
-    alert.show('Documento de horários não encontrado!', 'error');
-    return;
-  }
-
-  const schedule = docSnapshot.data().schedule;
-  const daySchedule = schedule.find(day => day.day === selectedDay.value.day);
-
-  if (daySchedule) {
-    const availableTimes = daySchedule.availableTimes;
-
-    // Calcular os horários que precisam ser marcados como ocupados
-    const startTimeDate = new Date(`1970-01-01T${startTime}:00`);
-
-    for (let i = 0; i < intervals; i++) {
-      const currentSlot = new Date(startTimeDate.getTime() + (i * 40 * 60 * 1000)); // Incrementa 40 minutos
-      const currentSlotTime = currentSlot.toTimeString().slice(0, 5); // Formata para HH:mm
-
-      if (availableTimes[currentSlotTime]) {
-        availableTimes[currentSlotTime].isBooked = true; // Marca como ocupado
-      }
-    }
-
-    // Atualiza os horários no Firestore
-    await updateDoc(docRef, {
-      schedule: schedule
-    });
-    alert.show('Horários reservados com sucesso!', 'success');
-  }
 };
 
 const handleDayChange = () => {
@@ -169,7 +140,11 @@ watch(() => props.reset, (newVal) => {
   }
 });
 
-onMounted(fetchDays);
+onMounted(() => {
+  fetchDays()
+  fetchServices()
+});
+
 onUnmounted(() => {
   if (unsubscribe) unsubscribe();
 });
