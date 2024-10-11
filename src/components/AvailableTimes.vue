@@ -5,9 +5,9 @@
       <select id="serviceSelect" class="form-select" v-model="selectedService" @change="selectService">
         <option value="" disabled>Escolha um serviço</option>
         <option v-for="item in services" :key="item.id" :value="item.id">
-          {{ item.title }} ({{ item.duration }} min)</option>
+          {{ item.title }} ({{ item.duration }} min)
+        </option>
       </select>
-
 
       <label for="daySelect" class="form-label">Selecione um dia:</label>
       <select id="daySelect" class="form-select" v-model="selectedDay" @change="handleDayChange">
@@ -32,8 +32,8 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { db, auth } from '@/firebaseConfig';
-import { doc, onSnapshot, getDoc, updateDoc, collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/firebaseConfig';
+import { doc, onSnapshot, getDoc, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { useAlert } from '@/stores/alert';
 
 const props = defineProps({
@@ -43,7 +43,7 @@ const props = defineProps({
 const emit = defineEmits(['select', 'selectDay', 'populateUserData', 'selectService']);
 const daysWithDate = ref([]);
 const availableTimes = ref([]);
-const services = ref([])
+const services = ref([]);
 const selectedDay = ref(null);
 const selectedTime = ref(null);
 const selectedService = ref(null);
@@ -51,24 +51,14 @@ const serviceDuration = ref(0);
 const alert = useAlert();
 let unsubscribe = null;
 
-// Duração dos serviços em minutos
-// const services = {
-//   'Corte': 40,
-//   'Barba': 20,
-//   'Sobrancelha': 10,
-//   'Luzes': 120,
-//   'Alisamento': 120,
-// };
-
-
+// Função para buscar serviços
 const fetchServices = async () => {
   const q = query(collection(db, 'services'), orderBy("duration", "asc"));
   const querySnapshot = await getDocs(q);
   querySnapshot.forEach((doc) => {
-    services.value.push({ id: doc.id, ...doc.data() })
-  })
+    services.value.push({ id: doc.id, ...doc.data() });
+  });
 };
-
 
 // Função para formatar data
 const formatDayWithDate = (day, date) => {
@@ -87,7 +77,7 @@ const fetchDays = async () => {
   }
 };
 
-// Computed para buscar horários disponíveis
+// Função para buscar horários disponíveis
 const fetchAvailableTimes = async () => {
   if (!selectedDay.value) return;
 
@@ -97,27 +87,54 @@ const fetchAvailableTimes = async () => {
   unsubscribe = onSnapshot(docRef, (docSnapshot) => {
     if (docSnapshot.exists()) {
       const daySchedule = docSnapshot.data().schedule?.find(day => day.day === selectedDay.value.day);
-      availableTimes.value = daySchedule?.availableTimes
+
+      // Filtrando horários disponíveis
+      let times = daySchedule?.availableTimes
         ? Object.entries(daySchedule.availableTimes)
           .filter(([, info]) => !info.isBooked)
           .map(([time]) => time)
           .sort()
         : [];
+
+      // Se um serviço estiver selecionado, aplicar lógica de duração
+      if (selectedService.value) {
+        const selectedServiceDuration = services.value.find(o => o.id === selectedService.value)?.duration || 0;
+        times = times.filter(time => checkAvailabilityForService(time, daySchedule.availableTimes, selectedServiceDuration));
+      }
+
+      availableTimes.value = times;
     } else {
       alert.show('Documento de horários não encontrado!', 'error');
     }
   });
 };
 
-// {}
+// Função para verificar se há disponibilidade de tempo suficiente para o serviço
+const checkAvailabilityForService = (startTime, availableTimes, serviceDuration) => {
+  const timeSlots = Object.entries(availableTimes).sort(([a], [b]) => a.localeCompare(b));
+  const startIndex = timeSlots.findIndex(([time]) => time === startTime);
+
+  if (startIndex === -1) return false;
+
+  let requiredSlots = Math.ceil(serviceDuration / 30); // Considerando intervalos de 30 min
+  let isAvailable = true;
+
+  for (let i = startIndex; i < startIndex + requiredSlots; i++) {
+    if (!timeSlots[i] || timeSlots[i][1].isBooked) {
+      isAvailable = false;
+      break;
+    }
+  }
+
+  return isAvailable;
+};
 
 const selectService = () => {
-  const service = services.value
-    .find(o => o.id === selectedService.value);
-
+  const service = services.value.find(o => o.id === selectedService.value);
   if (service) {
     emit('selectService', service);
-    serviceDuration.value = service?.duration || 0
+    serviceDuration.value = service?.duration || 0;
+    fetchAvailableTimes(); // Atualizar horários disponíveis quando o serviço for selecionado
   }
 };
 
@@ -141,8 +158,8 @@ watch(() => props.reset, (newVal) => {
 });
 
 onMounted(() => {
-  fetchDays()
-  fetchServices()
+  fetchDays();
+  fetchServices();
 });
 
 onUnmounted(() => {

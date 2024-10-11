@@ -6,9 +6,7 @@
   <div v-else>
     <router-view />
     <AlertToast />
-    <ConnectionStatus />
     <CopyCamp />
-    <FloatingButton />
   </div>
 </template>
 
@@ -16,10 +14,8 @@
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
 import AlertToast from './components/AlertToast.vue';
-import ConnectionStatus from './components/ConnectionStatus.vue';
 import { provide } from 'vue';
 import CopyCamp from './components/CopyCamp.vue';
-import FloatingButton from '@/components/ConditionalFloatingButton.vue'; // Importe o botão flutuante
 
 const sysapp = {
   name: 'Barbearia El Shaddai',
@@ -36,7 +32,7 @@ userStore.initAuthListener(router);
 </script>
 
 <style lang="scss">
-@import './scss/init.scss';
+@import './scss/init.scss'; 
 
 .loading {
   height: 100dvh;

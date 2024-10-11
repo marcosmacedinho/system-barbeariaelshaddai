@@ -99,7 +99,6 @@ const submitForm = async () => {
     try {
       const userId = userStore.user?.id;
       if (userId) {
-        // Armazena os dados do agendamento no Firestore
         await setDoc(doc(db, 'bookings', userId), {
           ...formData.value,
           day: localSelectedDay.value.day,
@@ -117,59 +116,61 @@ const submitForm = async () => {
         const dayIndex = schedule.findIndex(o => {
           return o.day === localSelectedDay.value.day
             && o.availableTimes[localSelectedTime.value]
-        })
+        });
 
-        if (dayIndex == -1) {
-          alert.show('Agendamento não encontrado.', 500);
-          return
+        if (dayIndex === -1) {
+          alert.show('Agendamento não encontrado.', 'error');
+          return;
         }
 
-        const day = schedule[dayIndex]
+        const day = schedule[dayIndex];
+        const serviceDuration = localSelectedService.value.duration;
 
-        if (localSelectedService.value.duration < 40) {
+        if (serviceDuration < 40) {
           const newDate = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
-            .add(localSelectedService.value.duration, 'minute').format('HH:mm')
+            .add(serviceDuration, 'minute').format('HH:mm');
 
-          day.availableTimes[newDate] = { isBooked: false }
-          day.availableTimes[localSelectedTime.value].isBooked = true
+          day.availableTimes[newDate] = { isBooked: false };
+          day.availableTimes[localSelectedTime.value].isBooked = true;
 
-        } else if (localSelectedService.value.duration > 40) {
-          const places = Math.ceil(localSelectedService.value.duration / 40)
-          console.log(localSelectedTime.value)
+        } else {
+          const places = Math.ceil(serviceDuration / 40);
+          for (let i = 0; i < places; i++) {
+            const nextTime = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
+              .add(i * 40, 'minute').format('HH:mm');
 
-          for (let i = localSelectedTime.value; i < localSelectedTime.value + places - 1; i++) {
-            if (i >= day.availableTimes.length && day.availableTimes[i].isBooked) {
-              alert.show('Os horários a frente já estão marcados.', 500);
-              return
+            if (day.availableTimes[nextTime]?.isBooked) {
+              alert.show('Horários subsequentes j  estão marcados.', 'error');
+              return;
             }
           }
 
-          for (let i = localSelectedTime.value; i < localSelectedTime.value + places - 1; i++) {
-            day.availableTimes[i].isBooked = true
+          for (let i = 0; i < places; i++) {
+            const nextTime = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
+              .add(i * 40, 'minute').format('HH:mm');
+            day.availableTimes[nextTime].isBooked = true;
           }
-        } else {
-          day.availableTimes[localSelectedTime.value].isBooked = true
         }
 
-        schedule[dayIndex] = day
+        schedule[dayIndex] = day;
+        await updateDoc(docRef, { schedule });
 
-        console.log(schedule[dayIndex])
+        alert.show('Agendamento confirmado!', 'success');
+        formData.value = { name: '', phone: '' };
+        localSelectedTime.value = null;
+        emit('clearSelection');
 
-        // await updateDoc(docRef, { schedule: schedule });
-
-        // alert.show('Agendamento confirmado!', 200);
-        // formData.value = { name: '', phone: '' };
-        // localSelectedTime.value = null;
-
-        // emit('clearSelection');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
-        alert.show('Usuário não autenticado.', 300);
+        alert.show('Usu rio não autenticado.', 'error');
       }
     } catch (error) {
-      alert.show('Erro ao confirmar agendamento.', 500);
+      alert.show('Erro ao confirmar agendamento.', 'error');
     }
   } else {
-    alert.show('Por favor, selecione um horário.', 300);
+    alert.show('Por favor, selecione um hor rio.', 'error');
   }
 };
 

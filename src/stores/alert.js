@@ -21,6 +21,6 @@ export const useAlert = defineStore('alert', () => {
         status,
         visible,
         show,
-        hide
+        hide,
     }
 })
