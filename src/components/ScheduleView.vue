@@ -96,7 +96,8 @@ const loadAppointments = () => {
                     id: doc.id,
                     name: data.name,
                     phone: data.phone,
-                    service: data.service,
+                    service: data.service, // Nome do serviço
+                    serviceId: data.serviceId, // ID do serviço
                     dayDate: data.dayDate,
                     time: data.time,
                     status: data.status,
@@ -176,8 +177,8 @@ const closeDeferModal = () => {
 const deferAppointment = async ({ id, newDate }) => {
     try {
         const docRef = doc(db, 'bookings', id);
-        await updateDoc(docRef, { status: 'adiado', day: newDate.day, time: newDate.time });
-        appointments.value = appointments.value.map(app => app.id === id ? { ...app, status: 'adiado', day: newDate.day, time: newDate.time } : app);
+        await updateDoc(docRef, { status: 'adiado', dayDate: newDate.day, time: newDate.time });
+        appointments.value = appointments.value.map(app => app.id === id ? { ...app, status: 'adiado', dayDate: newDate.day, time: newDate.time } : app);
         alert.show('Agendamento adiado com sucesso!', 200);
         closeDeferModal();
     } catch (error) {
@@ -224,61 +225,29 @@ onMounted(loadAppointments);
 }
 
 .appointment-card {
+    border: 1px solid #dee2e6;
     border-radius: 0.5rem;
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .menu-options {
-    border-top: 1px solid #eee;
-}
-
-.btn-icon {
-    background: transparent;
-    border: none;
-    color: #555;
-    padding: 0;
-    font-size: 1.5rem;
-}
-
-.btn-icon:hover {
-    color: #000;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .status-badge {
-    margin-top: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 1rem;
+    color: #fff;
 }
 
 .status-adiado {
     background-color: #ffc107;
-    color: #fff;
 }
 
 .status-despachado {
-    background-color: #28a745;
-    color: #fff;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
-}
-
-.btn-danger {
     background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
 }
 </style>

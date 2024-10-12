@@ -19,7 +19,7 @@ const sysapp = inject('sysapp');
     bottom: 15px;
     left: 20px;
     color: var(--cl-txt-sec);
-    opacity: 0.4;
+    opacity: 0.3;
     z-index: 1000;
     display: flex;
     align-items: center;

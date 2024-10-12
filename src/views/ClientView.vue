@@ -1,9 +1,8 @@
 <template>
   <div class="container">
-    <h1 class="text-center primary mb-5">Agendamento</h1>
 
     <div class="availability-section mb-5">
-      <h2 class="mb-3">Escolha um dia e horário</h2>
+      <h2 class="mb-3">Área de Agendamento</h2>
       <AvailableTime @select="selectTime" @selectDay="selectDay" @selectService="selectService"
         :reset="resetSelection" />
     </div>
@@ -16,11 +15,11 @@
 
     <div v-else class="alert alert-info text-center d-flex align-items-center justify-content-center gap-1">
       <span class="material-symbols-rounded">info</span>
-      Selecione um horário antes de preencher o formulário.
+      preecha os campos acima antes de realizar seu agendamento.
     </div>
 
     <div class="my-5">
-      <h2 class="text primary mb-3">Seu último Agendamento</h2>
+      <h2 class="text primary mb-3">Seu último Agendamento:</h2>
       <ul class="list-group">
         <li v-for="appointment in appointments" :key="appointment.id" class="list-group-item">
           <strong>{{ formatDate(appointment.dayDate) }}</strong> às {{ appointment.time }}
@@ -114,12 +113,11 @@ const formatDate = (dateString) => {
 <style scoped>
 .container {
   margin-top: 20px;
-  max-width: 600px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .alert {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 </style>

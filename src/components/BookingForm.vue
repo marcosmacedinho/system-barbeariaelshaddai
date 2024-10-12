@@ -20,6 +20,11 @@
           <label for="selectedTime" class="form-label">Horário Selecionado</label>
           <input v-model="localSelectedTime" type="text" class="form-control" id="selectedTime" disabled />
         </div>
+        <div class="mb-3">
+          <label for="selectedService" class="form-label">Serviço Selecionado</label>
+          <input type="text" class="form-control" id="selectedService" disabled
+            :value="localSelectedService ? localSelectedService.title : 'Nenhum serviço selecionado'" />
+        </div>
         <button type="submit" class="btn btn-primary d-flex align-items-center gap-1 mt-4">Confirmar Agendamento <span
             class="material-symbols-rounded fs-5">check</span></button>
       </form>
@@ -99,6 +104,59 @@ const submitForm = async () => {
     try {
       const userId = userStore.user?.id;
       if (userId) {
+        const docRef = doc(db, 'barbershop', 'dailySchedule');
+        const docSnapshot = await getDoc(docRef);
+        const schedule = docSnapshot.data().schedule || [];
+
+        const dayIndex = schedule.findIndex(o => o.day === localSelectedDay.value.day);
+
+        if (dayIndex === -1) {
+          alert.show('Dia selecionado não encontrado no cronograma.', 'error');
+          return;
+        }
+
+        const day = schedule[dayIndex];
+        const serviceDuration = localSelectedService.value.duration; // Duração em minutos
+
+        // Crie um objeto Day.js para a hora de início
+        const startTime = dayjs(`${localSelectedDay.value.dayDate} ${localSelectedTime.value}`);
+        
+        // Função para verificar se um horário específico está disponível
+        const isSlotAvailable = (timeSlot) => {
+          const timeData = day.availableTimes[timeSlot];
+          return timeData && !timeData.isBooked;
+        };
+
+        // Verifique todos os slots necessários
+        let slotsAvailable = true;
+        for (let i = 0; i < Math.ceil(serviceDuration / 40); i++) {
+          const currentSlotTime = startTime.add(i * 40, 'minute').format('HH:mm');
+          if (!isSlotAvailable(currentSlotTime)) {
+            slotsAvailable = false;
+            break;
+          }
+        }
+
+        if (!slotsAvailable) {
+          alert.show('Um ou mais horários necessários não estão disponíveis.', 'warning');
+          return;
+        }
+
+        // Se os horários estão disponíveis, marque-os como reservados
+        for (let i = 0; i < Math.ceil(serviceDuration / 40); i++) {
+          const currentSlotTime = startTime.add(i * 40, 'minute').format('HH:mm');
+          day.availableTimes[currentSlotTime].isBooked = true;
+        }
+
+        // Verifica se o serviço selecionado existe
+        const serviceRef = doc(db, 'services', localSelectedService.value.id);
+        const serviceDoc = await getDoc(serviceRef);
+        if (!serviceDoc.exists()) {
+          alert.show('Serviço selecionado não existe no Firestore.', 'error');
+          return;
+        }
+
+        // Se todas as verificações passaram, salve no banco de dados
         await setDoc(doc(db, 'bookings', userId), {
           ...formData.value,
           day: localSelectedDay.value.day,
@@ -108,50 +166,7 @@ const submitForm = async () => {
           userId: userId
         });
 
-        // Atualiza os horários no Firestore somente após a confirmação
-        const docRef = doc(db, 'barbershop', 'dailySchedule');
-        const docSnapshot = await getDoc(docRef);
-        const schedule = docSnapshot.data().schedule || [];
-
-        const dayIndex = schedule.findIndex(o => {
-          return o.day === localSelectedDay.value.day
-            && o.availableTimes[localSelectedTime.value]
-        });
-
-        if (dayIndex === -1) {
-          alert.show('Agendamento não encontrado.', 'error');
-          return;
-        }
-
-        const day = schedule[dayIndex];
-        const serviceDuration = localSelectedService.value.duration;
-
-        if (serviceDuration < 40) {
-          const newDate = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
-            .add(serviceDuration, 'minute').format('HH:mm');
-
-          day.availableTimes[newDate] = { isBooked: false };
-          day.availableTimes[localSelectedTime.value].isBooked = true;
-
-        } else {
-          const places = Math.ceil(serviceDuration / 40);
-          for (let i = 0; i < places; i++) {
-            const nextTime = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
-              .add(i * 40, 'minute').format('HH:mm');
-
-            if (day.availableTimes[nextTime]?.isBooked) {
-              alert.show('Horários subsequentes j  estão marcados.', 'error');
-              return;
-            }
-          }
-
-          for (let i = 0; i < places; i++) {
-            const nextTime = dayjs(dayjs().format('YYYY-MM-DD ') + localSelectedTime.value)
-              .add(i * 40, 'minute').format('HH:mm');
-            day.availableTimes[nextTime].isBooked = true;
-          }
-        }
-
+        // Atualiza o cronograma no Firestore
         schedule[dayIndex] = day;
         await updateDoc(docRef, { schedule });
 
@@ -164,13 +179,13 @@ const submitForm = async () => {
           window.location.reload();
         }, 2000);
       } else {
-        alert.show('Usu rio não autenticado.', 'error');
+        alert.show('Usuário não autenticado.', 'error');
       }
     } catch (error) {
       alert.show('Erro ao confirmar agendamento.', 'error');
     }
   } else {
-    alert.show('Por favor, selecione um hor rio.', 'error');
+    alert.show('Por favor, selecione um horário.', 'error');
   }
 };
 

@@ -16,7 +16,8 @@
           <select v-model="schedule.endTime" :id="'end-' + index" class="form-select" :disabled="!schedule.startTime"
             @change="updateAvailableTimes(index)">
             <option value="" disabled>Fim</option>
-            <option v-for="time in validEndTimeOptions(schedule.startTime)" :key="time" :value="time">{{ time }}</option>
+            <option v-for="time in validEndTimeOptions(schedule.startTime)" :key="time" :value="time">{{ time }}
+            </option>
           </select>
         </div>
 
@@ -41,20 +42,20 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig.js';
 import { useAlert } from '@/stores/alert';
-import { format, addMinutes, isBefore } from 'date-fns'; // Importando funções do date-fns
+import { format, addMinutes, isBefore } from 'date-fns';
 
 const generateTimes = (start, end) => {
   const times = [];
   const startDate = new Date(`1970-01-01T${start}:00`);
   const endDate = new Date(`1970-01-01T${end}:00`);
-  const interval = 40; // 40 minutos
+  const interval = 40;
 
   let current = startDate;
   while (isBefore(current, endDate)) {
-    times.push(format(current, 'HH:mm')); // Formata a hora
+    times.push(format(current, 'HH:mm'));
     current = addMinutes(current, interval);
   }
 
@@ -93,13 +94,13 @@ const getDayDate = (day) => {
   let daysUntilNext = (dayIndex + 7 - currentDayIndex) % 7;
 
   if (daysUntilNext === 0) {
-    daysUntilNext = 7; // Pula para o próximo
+    daysUntilNext = 7;
   }
 
   const dayDate = new Date(currentDate);
   dayDate.setDate(currentDate.getDate() + daysUntilNext);
 
-  return format(dayDate, 'yyyy-MM-dd'); // Retorna a data no formato YYYY-MM-DD
+  return format(dayDate, 'yyyy-MM-dd');
 };
 
 const formatDayWithDate = (day) => {
@@ -169,11 +170,11 @@ const saveDailySchedule = async () => {
 
   const scheduleToSave = dailySchedule.value.map((day, index) => ({
     day: day.day,
-    dayDate: getDayDate(day.day), // Adiciona a data correspondente
+    dayDate: getDayDate(day.day),
     startTime: day.startTime,
     endTime: day.endTime,
     availableTimes: availableTimes.value[index]?.reduce((acc, time) => {
-      acc[time] = { isBooked: false }; // Inicia todos os horários como não ocupados
+      acc[time] = { isBooked: false };
       return acc;
     }, {}) || {}
   }));
@@ -190,17 +191,42 @@ const saveDailySchedule = async () => {
   }
 };
 
+// Carrega os horários diários salvos do Firestore
+const loadDailySchedule = async () => {
+  const docRef = doc(db, 'barbershop', 'dailySchedule');
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    const savedSchedule = docSnap.data().schedule;
+
+    dailySchedule.value = savedSchedule.map(day => ({
+      day: day.day,
+      startTime: day.startTime,
+      endTime: day.endTime
+    }));
+
+    // Atualiza os horários disponíveis para os horários carregados
+    savedSchedule.forEach((day, index) => {
+      if (day.startTime && day.endTime) {
+        availableTimes.value[index] = generateTimes(day.startTime, day.endTime);
+      }
+    });
+  } else {
+    alert.show('Nenhum horário salvo encontrado.', 300);
+  }
+};
+
+// Atualiza o cronograma semanal
 const updateWeeklySchedule = () => {
   const currentDate = new Date();
   const currentDayIndex = currentDate.getDay();
 
-  // Atualiza dailySchedule para a nova semana
   dailySchedule.value = dailySchedule.value.map((day, index) => {
     const newDay = new Date(currentDate);
-    newDay.setDate(currentDate.getDate() + (index - currentDayIndex)); // Atualiza a data
+    newDay.setDate(currentDate.getDate() + (index - currentDayIndex));
     return {
       ...day,
-      dayDate: format(newDay, 'yyyy-MM-dd'), // Atualiza a data no formato YYYY-MM-DD
+      dayDate: format(newDay, 'yyyy-MM-dd'),
       availableTimes: []
     };
   });
@@ -208,5 +234,6 @@ const updateWeeklySchedule = () => {
 
 onMounted(() => {
   updateWeeklySchedule();
+  loadDailySchedule(); // Carrega horários salvos ao montar o componente
 });
 </script>

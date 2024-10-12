@@ -5,8 +5,7 @@
       <select id="serviceSelect" class="form-select" v-model="selectedService" @change="selectService">
         <option value="" disabled>Escolha um serviço</option>
         <option v-for="item in services" :key="item.id" :value="item.id">
-          {{ item.title }} ({{ item.duration }} min)
-        </option>
+          {{ item.title }} ({{ item.duration }} min)</option>
       </select>
 
       <label for="daySelect" class="form-label">Selecione um dia:</label>
@@ -56,7 +55,7 @@ const fetchServices = async () => {
   const q = query(collection(db, 'services'), orderBy("duration", "asc"));
   const querySnapshot = await getDocs(q);
   querySnapshot.forEach((doc) => {
-    services.value.push({ id: doc.id, ...doc.data() });
+    services.value.push({ id: doc.id, ...doc.data() })
   });
 };
 
@@ -77,7 +76,29 @@ const fetchDays = async () => {
   }
 };
 
-// Função para buscar horários disponíveis
+// Função para verificar se o horário do serviço não se sobrepõe a outro agendamento
+const checkAvailabilityForService = (time, availableTimes, duration) => {
+  const timeInfo = availableTimes[time];
+  if (!timeInfo || timeInfo.isBooked) return false;
+
+  const startTime = new Date(`1970-01-01T${time}:00`);
+  const endTime = new Date(startTime.getTime() + duration * 60000);
+
+  // Verifica se o horário do serviço não se sobrepõe a outro agendamento
+  for (const t in availableTimes) {
+    if (availableTimes[t].isBooked) continue; // Ignora horários já reservados
+    const bookedStart = new Date(`1970-01-01T${t}:00`);
+    const bookedEnd = new Date(bookedStart.getTime() + availableTimes[t].duration * 60000);
+
+    // Verifica se há sobreposição
+    if ((startTime < bookedEnd) && (endTime > bookedStart)) {
+      return false; // O horário não está disponível
+    }
+  }
+  return true; // O horário está disponível
+};
+
+// Computed para buscar horários disponíveis
 const fetchAvailableTimes = async () => {
   if (!selectedDay.value) return;
 
@@ -89,11 +110,10 @@ const fetchAvailableTimes = async () => {
       const daySchedule = docSnapshot.data().schedule?.find(day => day.day === selectedDay.value.day);
 
       // Filtrando horários disponíveis
-      let times = daySchedule?.availableTimes
-        ? Object.entries(daySchedule.availableTimes)
-          .filter(([, info]) => !info.isBooked)
-          .map(([time]) => time)
-          .sort()
+      let times = daySchedule?.availableTimes ? Object.entries(daySchedule.availableTimes)
+        .filter(([, info]) => !info.isBooked)
+        .map(([time]) => time)
+        .sort()
         : [];
 
       // Se um serviço estiver selecionado, aplicar lógica de duração
@@ -109,41 +129,26 @@ const fetchAvailableTimes = async () => {
   });
 };
 
-// Função para verificar se há disponibilidade de tempo suficiente para o serviço
-const checkAvailabilityForService = (startTime, availableTimes, serviceDuration) => {
-  const timeSlots = Object.entries(availableTimes).sort(([a], [b]) => a.localeCompare(b));
-  const startIndex = timeSlots.findIndex(([time]) => time === startTime);
-
-  if (startIndex === -1) return false;
-
-  let requiredSlots = Math.ceil(serviceDuration / 30); // Considerando intervalos de 30 min
-  let isAvailable = true;
-
-  for (let i = startIndex; i < startIndex + requiredSlots; i++) {
-    if (!timeSlots[i] || timeSlots[i][1].isBooked) {
-      isAvailable = false;
-      break;
-    }
-  }
-
-  return isAvailable;
-};
-
 const selectService = () => {
   const service = services.value.find(o => o.id === selectedService.value);
+
   if (service) {
     emit('selectService', service);
     serviceDuration.value = service?.duration || 0;
-    fetchAvailableTimes(); // Atualizar horários disponíveis quando o serviço for selecionado
   }
 };
 
 const selectTime = async () => {
+  if (!selectedTime.value || !selectedService.value) {
+    alert.show('Por favor, selecione um horário e um serviço!', 'warning');
+    return;
+  }
   emit('select', { day: selectedDay.value.day, time: selectedTime.value, service: selectedService.value });
 };
 
 const handleDayChange = () => {
   emit('selectDay', selectedDay.value);
+  availableTimes.value = []; // Limpe os horários disponíveis ao mudar o dia
   fetchAvailableTimes();
 };
 
