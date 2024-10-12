@@ -5,7 +5,7 @@ import { useAlert } from './stores/alert'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_1_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_1_DOMAIN,
   authDomain: import.meta.env.VITE_FIREBASE_2_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
