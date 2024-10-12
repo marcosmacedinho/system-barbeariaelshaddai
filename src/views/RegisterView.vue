@@ -1,12 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
 import { useAlert } from '@/stores/alert';
-import { auth, db } from '@/firebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 
-const router = useRouter();
+
+const alert = useAlert();
 const data = ref({
     name: '',
     email: '',
@@ -15,26 +14,19 @@ const data = ref({
     phone: ''
 });
 
+const router = useRouter();
+const userStore = useUserStore();
+
 const register = async () => {
     if (data.value.password === data.value.confirmPassword) {
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, data.value.email, data.value.password);
-            const user = userCredential.user;
-
-            await setDoc(doc(db, 'clients', user.uid), {
-                name: data.value.name,
-                email: data.value.email,
-                phone: data.value.phone,
-                createdAt: new Date()
-            });
-
-            useAlert().show("Cadastro realizado com sucesso", 200);
+            await userStore.register(data.value.name, data.value.email, data.value.password, data.value.phone); // Chama a função de registro
             router.replace('/appointments');
         } catch (error) {
-            useAlert().show("Erro no registro, tente novamente! Caso persista, contate o administrador", 300);
+            console.error("Erro no registro:", error);
         }
     } else {
-        useAlert().show("As senhas não coincidem.", 300);
+        alert.show("As senhas não coincidem.", 300);
     }
 };
 </script>
@@ -43,9 +35,7 @@ const register = async () => {
     <div class="container register">
         <div class="flex-grow-1">
             <div class="text-center">
-                <h1 class="text-center fs-5 fw-bolder mb-0">
-                    Barbearia El Shaddai
-                </h1>
+                <h1 class="text-center fs-5 fw-bolder mb-0">Barbearia El Shaddai</h1>
                 <p class="fs-6 text-muted">Gerenciamento de atendimentos à Barbearia</p>
             </div>
             <form @submit.prevent="register">

@@ -120,7 +120,7 @@ const submitForm = async () => {
 
         // Crie um objeto Day.js para a hora de início
         const startTime = dayjs(`${localSelectedDay.value.dayDate} ${localSelectedTime.value}`);
-        
+
         // Função para verificar se um horário específico está disponível
         const isSlotAvailable = (timeSlot) => {
           const timeData = day.availableTimes[timeSlot];
